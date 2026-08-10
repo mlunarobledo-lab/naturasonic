@@ -105,6 +105,8 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
                     latestBuffer_.assign(captureBuffer_.begin(),
                                         captureBuffer_.begin() + framesToProcess);
                 }
+
+                whisperBridge_.feedAudio(captureBuffer_.data(), framesToProcess);
             } else {
                 std::memset(output, 0, numFrames * kChannelCount * sizeof(float));
             }
@@ -123,6 +125,34 @@ void NaturaSonicEngine::onErrorAfterClose(
         stop();
         start();
     }
+}
+
+bool NaturaSonicEngine::initWhisper(const char* modelPath) {
+    return whisperBridge_.initModel(modelPath);
+}
+
+void NaturaSonicEngine::releaseWhisper() {
+    whisperBridge_.releaseModel();
+}
+
+void NaturaSonicEngine::startWhisperCapture() {
+    whisperBridge_.startCapture();
+}
+
+std::string NaturaSonicEngine::stopWhisperCapture() {
+    return whisperBridge_.stopCapture();
+}
+
+std::string NaturaSonicEngine::getWhisperText() {
+    return whisperBridge_.getLatestText();
+}
+
+bool NaturaSonicEngine::isWhisperCapturing() const {
+    return whisperBridge_.isCapturing();
+}
+
+bool NaturaSonicEngine::isWhisperModelLoaded() const {
+    return whisperBridge_.isModelLoaded();
 }
 
 void NaturaSonicEngine::openInputStream() {

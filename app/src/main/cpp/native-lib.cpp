@@ -1,6 +1,10 @@
 #include <jni.h>
 #include <string>
+#include <android/log.h>
 #include "oboe_engine.h"
+
+#define LOG_TAG "NaturaSonicJNI"
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 static NaturaSonicEngine* engine = nullptr;
 
@@ -95,6 +99,59 @@ Java_com_naturasonic_app_audio_OboeAudioEngine_nativeDestroy(
         delete eng;
         if (eng == engine) engine = nullptr;
     }
+}
+
+// --- Whisper JNI bridge (audio stays in C++) ---
+
+JNIEXPORT jboolean JNICALL
+Java_com_naturasonic_app_transcription_WhisperTranscriptionEngine_nativeInitWhisper(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jstring modelPath) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (!eng) {
+        LOGE("nativeInitWhisper: null engine handle");
+        return JNI_FALSE;
+    }
+
+    const char* path = env->GetStringUTFChars(modelPath, nullptr);
+    if (!path) return JNI_FALSE;
+
+    bool ok = eng->initWhisper(path);
+    env->ReleaseStringUTFChars(modelPath, path);
+    return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_transcription_WhisperTranscriptionEngine_nativeStartWhisperCapture(
+        JNIEnv* env, jobject thiz, jlong engineHandle) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) eng->startWhisperCapture();
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_naturasonic_app_transcription_WhisperTranscriptionEngine_nativeStopWhisperCapture(
+        JNIEnv* env, jobject thiz, jlong engineHandle) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (!eng) return env->NewStringUTF("");
+
+    std::string text = eng->stopWhisperCapture();
+    return env->NewStringUTF(text.c_str());
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_naturasonic_app_transcription_WhisperTranscriptionEngine_nativeGetWhisperText(
+        JNIEnv* env, jobject thiz, jlong engineHandle) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (!eng) return env->NewStringUTF("");
+
+    std::string text = eng->getWhisperText();
+    return env->NewStringUTF(text.c_str());
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_transcription_WhisperTranscriptionEngine_nativeReleaseWhisper(
+        JNIEnv* env, jobject thiz, jlong engineHandle) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) eng->releaseWhisper();
 }
 
 }

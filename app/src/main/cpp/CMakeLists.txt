@@ -33,37 +33,25 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(whisper)
 
-# --- Audio pipeline library ---
+# --- Unified audio + whisper library ---
 add_library(naturasonic SHARED
     native-lib.cpp
     oboe_engine.cpp
     audio_processor.cpp
     volume_limiter.cpp
+    whisper_bridge.cpp
 )
 
 target_include_directories(naturasonic PRIVATE
     ${oboe_SOURCE_DIR}/include
-)
-
-target_link_libraries(naturasonic
-    oboe
-    android
-    log
-    OpenSLES
-)
-
-# --- Whisper JNI library ---
-add_library(whisper_jni SHARED
-    whisper_jni.cpp
-)
-
-target_include_directories(whisper_jni PRIVATE
     ${whisper_SOURCE_DIR}
     ${whisper_SOURCE_DIR}/include
 )
 
-target_link_libraries(whisper_jni
+target_link_libraries(naturasonic
+    oboe
     whisper
     android
     log
+    OpenSLES
 )

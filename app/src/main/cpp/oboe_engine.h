@@ -2,10 +2,12 @@
 
 #include <oboe/Oboe.h>
 #include <vector>
+#include <string>
 #include <mutex>
 #include <atomic>
 #include "audio_processor.h"
 #include "volume_limiter.h"
+#include "whisper_bridge.h"
 
 class NaturaSonicEngine : public oboe::AudioStreamDataCallback,
                            public oboe::AudioStreamErrorCallback {
@@ -23,6 +25,14 @@ public:
 
     std::vector<float> getLatestAudioBuffer();
 
+    bool initWhisper(const char* modelPath);
+    void releaseWhisper();
+    void startWhisperCapture();
+    std::string stopWhisperCapture();
+    std::string getWhisperText();
+    bool isWhisperCapturing() const;
+    bool isWhisperModelLoaded() const;
+
     oboe::DataCallbackResult onAudioReady(
         oboe::AudioStream* stream, void* audioData, int32_t numFrames) override;
 
@@ -37,6 +47,7 @@ private:
 
     AudioProcessor processor_;
     VolumeLimiter limiter_;
+    WhisperBridge whisperBridge_;
 
     std::vector<float> captureBuffer_;
     std::vector<float> latestBuffer_;

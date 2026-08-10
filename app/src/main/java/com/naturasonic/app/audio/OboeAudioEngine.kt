@@ -9,6 +9,7 @@ class OboeAudioEngine @Inject constructor() {
     private var engineHandle: Long = 0L
 
     val isRunning: Boolean get() = engineHandle != 0L
+    val nativeHandle: Long get() = engineHandle
 
     fun create() {
         if (engineHandle == 0L) {

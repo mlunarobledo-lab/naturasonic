@@ -1,11 +1,17 @@
 package com.naturasonic.app.transcription
 
 import android.content.Context
+import com.naturasonic.app.audio.OboeAudioEngine
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
@@ -16,10 +22,9 @@ import javax.inject.Singleton
 
 @Singleton
 class WhisperTranscriptionEngine @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val oboeEngine: OboeAudioEngine
 ) {
-    private var ctxPtr: Long = 0L
-
     private val _currentText = MutableStateFlow("")
     val currentText: StateFlow<String> = _currentText.asStateFlow()
 
@@ -35,7 +40,8 @@ class WhisperTranscriptionEngine @Inject constructor(
     private val _selectedModel = MutableStateFlow(WhisperModel.TINY)
     val selectedModel: StateFlow<WhisperModel> = _selectedModel.asStateFlow()
 
-    private val resampleBuffer = mutableListOf<Float>()
+    private val scope = CoroutineScope(Dispatchers.Default)
+    private var pollingJob: Job? = null
 
     private fun getModelDir(): File = File(context.filesDir, "models/whisper")
 
@@ -99,103 +105,80 @@ class WhisperTranscriptionEngine @Inject constructor(
         val modelFile = File(getModelDir(), model.fileName)
         if (!modelFile.exists()) return
 
-        ctxPtr = nativeInit(modelFile.absolutePath)
-        _isModelReady.value = ctxPtr != 0L
-    }
+        val handle = oboeEngine.nativeHandle
+        if (handle == 0L) return
 
-    fun processAudioBuffer(buffer: FloatArray) {
-        if (!_isTranscribing.value || ctxPtr == 0L) return
-
-        val resampled = resample48to16(buffer)
-        synchronized(resampleBuffer) {
-            resampleBuffer.addAll(resampled.toList())
-
-            if (resampleBuffer.size >= SEGMENT_SAMPLES) {
-                val segment = resampleBuffer.take(SEGMENT_SAMPLES).toFloatArray()
-                resampleBuffer.clear()
-
-                val text = nativeTranscribe(ctxPtr, segment)
-                if (text.isNotBlank()) {
-                    _currentText.value = text.trim()
-                }
-            }
-        }
+        val ok = nativeInitWhisper(handle, modelFile.absolutePath)
+        _isModelReady.value = ok
     }
 
     fun startTranscription() {
+        val handle = oboeEngine.nativeHandle
+        if (handle == 0L || !_isModelReady.value) return
+
         _isTranscribing.value = true
         _currentText.value = ""
-        synchronized(resampleBuffer) {
-            resampleBuffer.clear()
-        }
+        nativeStartWhisperCapture(handle)
+        startTextPolling()
     }
 
     fun stopTranscription(): String {
         _isTranscribing.value = false
+        pollingJob?.cancel()
+        pollingJob = null
 
-        synchronized(resampleBuffer) {
-            if (resampleBuffer.size >= MIN_SAMPLES && ctxPtr != 0L) {
-                val remaining = resampleBuffer.toFloatArray()
-                resampleBuffer.clear()
-                val text = nativeTranscribe(ctxPtr, remaining)
-                if (text.isNotBlank()) {
-                    _currentText.value = text.trim()
-                }
-            }
-            resampleBuffer.clear()
+        val handle = oboeEngine.nativeHandle
+        if (handle == 0L) return _currentText.value
+
+        val finalText = nativeStopWhisperCapture(handle)
+        if (finalText.isNotBlank()) {
+            _currentText.value = finalText.trim()
         }
-
         return _currentText.value
     }
 
     fun release() {
-        stopTranscription()
+        pollingJob?.cancel()
+        pollingJob = null
+        _isTranscribing.value = false
         releaseContext()
     }
 
     private fun releaseContext() {
-        if (ctxPtr != 0L) {
-            nativeFree(ctxPtr)
-            ctxPtr = 0L
+        val handle = oboeEngine.nativeHandle
+        if (handle != 0L) {
+            nativeReleaseWhisper(handle)
         }
         _isModelReady.value = false
     }
 
-    private external fun nativeInit(modelPath: String): Long
-    private external fun nativeTranscribe(ctxPtr: Long, audioData: FloatArray): String
-    private external fun nativeFree(ctxPtr: Long)
-
-    companion object {
-        private const val WHISPER_SAMPLE_RATE = 16000
-        private const val SEGMENT_SECONDS = 10
-        private const val SEGMENT_SAMPLES = WHISPER_SAMPLE_RATE * SEGMENT_SECONDS
-        private const val MIN_SAMPLES = WHISPER_SAMPLE_RATE
-
-        init {
-            System.loadLibrary("whisper_jni")
-        }
-    }
-}
-
-private fun resample48to16(input: FloatArray): FloatArray {
-    val ratio = 3
-    val outputSize = input.size / ratio
-    if (outputSize == 0) return floatArrayOf()
-
-    val output = FloatArray(outputSize)
-    for (i in output.indices) {
-        val srcIdx = i * ratio
-        var sum = 0f
-        var count = 0
-        for (j in 0 until ratio) {
-            if (srcIdx + j < input.size) {
-                sum += input[srcIdx + j]
-                count++
+    private fun startTextPolling() {
+        pollingJob?.cancel()
+        pollingJob = scope.launch {
+            while (isActive && _isTranscribing.value) {
+                val handle = oboeEngine.nativeHandle
+                if (handle != 0L) {
+                    val text = nativeGetWhisperText(handle)
+                    if (text.isNotBlank()) {
+                        _currentText.value = text.trim()
+                    }
+                }
+                delay(150)
             }
         }
-        output[i] = sum / count
     }
-    return output
+
+    private external fun nativeInitWhisper(engineHandle: Long, modelPath: String): Boolean
+    private external fun nativeStartWhisperCapture(engineHandle: Long)
+    private external fun nativeStopWhisperCapture(engineHandle: Long): String
+    private external fun nativeGetWhisperText(engineHandle: Long): String
+    private external fun nativeReleaseWhisper(engineHandle: Long)
+
+    companion object {
+        init {
+            System.loadLibrary("naturasonic")
+        }
+    }
 }
 
 enum class WhisperModel(

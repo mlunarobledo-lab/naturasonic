@@ -394,8 +394,13 @@ npx tsc --noEmit     # Verificar tipos
 
 **2026-08-10: Pipeline Oboe opera a 48kHz — motores externos requieren resampling**
 - **Error**: whisper.cpp requiere audio PCM float32 a 16kHz mono. El pipeline Oboe captura a 48kHz.
-- **Fix**: Resampling por decimación 3:1 con promediado anti-aliasing en la capa Kotlin del motor externo. El pipeline nativo NO se toca — cada consumidor resamplea en su propia capa.
-- **Aplicar en**: Cualquier motor futuro que consuma audio del pipeline Oboe con sample rate diferente a 48kHz (ej: otro modelo de ML, codec específico). El patrón está implementado en `WhisperTranscriptionEngine.kt`.
+- **Fix**: Resampling por decimación 3:1 con promediado anti-aliasing. Desde PRP-003 el resampling vive en C++ nativo (`WhisperBridge::resample48to16`), no en Kotlin. El pipeline nativo NO se toca — cada consumidor resamplea en su propia capa.
+- **Aplicar en**: Cualquier motor futuro que consuma audio del pipeline Oboe con sample rate diferente a 48kHz (ej: otro modelo de ML, codec específico).
+
+**2026-08-10: Consumidores pesados de audio deben integrarse a nivel C++ con thread dedicado**
+- **Error**: En PRP-002, el audio viajaba C++→JNI→Kotlin (resampling)→JNI→C++ (whisper) — dos cruces JNI por frame de audio, GC pressure por arrays Kotlin, latencia innecesaria.
+- **Fix**: `WhisperBridge` C++ recibe audio directamente desde `onAudioReady` de Oboe, resamplea en C++, y procesa en un thread dedicado. El audio nunca cruza JNI hasta convertirse en texto. Target `whisper_jni` eliminado — todo unificado en `libnaturasonic.so`.
+- **Aplicar en**: Cualquier futuro consumidor de audio que haga procesamiento pesado (YAMNet podría migrarse al mismo patrón, modelos ML futuros, análisis espectral). La clave: buffer mutex-protegido alimentado desde el callback de audio + thread dedicado de procesamiento.
 
 ---
 
