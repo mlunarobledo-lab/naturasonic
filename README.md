@@ -10,7 +10,7 @@ App Android nativa de amplificación de sonido personal (PSAP) y bienestar audit
 |---------|-------------|
 | Amplificación PSAP | Audio del micrófono procesado en tiempo real con baja latencia vía Oboe (C++) |
 | Ecualizador | 10 bandas de frecuencia (125 Hz - 12 kHz) con perfiles guardables |
-| Transcripción offline | Subtítulos en tiempo real con Vosk (~50 MB modelo descargable) |
+| Transcripción offline | Subtítulos en tiempo real con Vosk (~50 MB) o Whisper premium (~75-142 MB) |
 | Detección de alertas | YAMNet/TF Lite detecta sirenas, timbres, alarmas con vibración |
 | Modos de escucha | Conversación, Entretenimiento, Exterior, Micrófono Remoto |
 | Protección auditiva | Límite hard 85 dB, bloqueo a 70 dB tras 1 hora continua |
@@ -36,7 +36,7 @@ App Android nativa de amplificación de sonido personal (PSAP) y bienestar audit
 | UI | Jetpack Compose + Material 3 |
 | Audio | Oboe 1.9 (C++ vía JNI) |
 | PSAP | Implementación directa (biquad EQ, volume limiter, noise gate) |
-| Transcripción | Vosk 0.3.45+ (offline, streaming) |
+| Transcripción | Vosk 0.3.45+ (offline, streaming) + whisper.cpp v1.6.2 (premium, alta fidelidad) |
 | Detección de sonidos | TensorFlow Lite + YAMNet |
 | Bluetooth | LE Audio (API 33+), ASHA (API 29+), Classic |
 | DI | Hilt |
@@ -111,7 +111,7 @@ naturasonic/
 | Cancelación de eco/ruido | Transcripción continua |
 | Detección de alertas | Micrófono remoto |
 | Modo Conversación | Perfiles de entorno ilimitados |
-| | whisper.cpp (alta fidelidad) |
+| | whisper.cpp (alta fidelidad, tiny/base) |
 
 ---
 

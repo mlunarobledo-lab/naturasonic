@@ -392,6 +392,11 @@ npx tsc --noEmit     # Verificar tipos
 - **Fix**: Los comandos de validación para este proyecto son: `./gradlew assembleDebug` (build), `./gradlew lint` (lint), `./gradlew connectedAndroidTest` (tests instrumentados). No aplican `npm run dev/build/lint` ni `npx tsc --noEmit`.
 - **Aplicar en**: Todo desarrollo futuro en este proyecto. Los criterios de entrega de CLAUDE.md deben leerse sustituyendo los comandos npm por sus equivalentes Gradle.
 
+**2026-08-10: Pipeline Oboe opera a 48kHz — motores externos requieren resampling**
+- **Error**: whisper.cpp requiere audio PCM float32 a 16kHz mono. El pipeline Oboe captura a 48kHz.
+- **Fix**: Resampling por decimación 3:1 con promediado anti-aliasing en la capa Kotlin del motor externo. El pipeline nativo NO se toca — cada consumidor resamplea en su propia capa.
+- **Aplicar en**: Cualquier motor futuro que consuma audio del pipeline Oboe con sample rate diferente a 48kHz (ej: otro modelo de ML, codec específico). El patrón está implementado en `WhisperTranscriptionEngine.kt`.
+
 ---
 
 Agent-First. El usuario dicta el objetivo; TÚ ejecutas a la perfección

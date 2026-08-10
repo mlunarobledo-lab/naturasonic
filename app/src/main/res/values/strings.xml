@@ -26,6 +26,11 @@
     <string name="transcription_stop">Detener transcripción</string>
     <string name="transcription_download_model">Descargar modelo de voz</string>
     <string name="transcription_model_size">Tamaño aproximado: %1$s MB</string>
+    <string name="transcription_engine_vosk">Vosk (ligero)</string>
+    <string name="transcription_engine_whisper">Whisper (premium)</string>
+    <string name="transcription_engine_label">Motor de transcripción</string>
+    <string name="transcription_whisper_premium_required">Whisper requiere suscripción premium</string>
+    <string name="transcription_whisper_download">Descargar modelo Whisper</string>
 
     <string name="alert_siren">Sirena detectada</string>
     <string name="alert_doorbell">Timbre detectado</string>

@@ -258,6 +258,7 @@ Error -> Fix -> Documentar en PRP -> ¿Cumple algun criterio? -> Si: a AGENTS.md
 | PRP | Descripción | Estado | Fecha cierre |
 |-----|-------------|--------|--------------|
 | PRP-001 | Scaffold completo: Fases 0-7 (audio pipeline, BT, PSAP, transcripción, detección, UI, billing) | COMPLETADO | 2026-08-03 |
+| PRP-002 | Integración whisper.cpp: motor de transcripción premium offline (FetchContent + JNI + Kotlin + UI) | COMPLETADO | 2026-08-10 |
 
 ### Fases implementadas en PRP-001
 

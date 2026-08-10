@@ -19,19 +19,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -81,31 +83,29 @@ fun TranscriptionScreen(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(Modifier.height(8.dp))
+
+            EngineSelector(
+                selected = state.selectedEngine,
+                isPremium = state.isPremium,
+                onSelect = viewModel::selectEngine
+            )
+
             Spacer(Modifier.height(16.dp))
 
-            if (!state.isModelReady && !state.isDownloading) {
-                ModelDownloadCard(onDownload = viewModel::downloadModel)
-            } else if (state.isDownloading) {
-                DownloadProgressCard(progress = state.downloadProgress)
+            if (state.selectedEngine == SelectedEngine.WHISPER) {
+                WhisperContent(
+                    state = state,
+                    onDownload = viewModel::downloadModel,
+                    onToggleTranscription = viewModel::toggleTranscription,
+                    onSetSubtitleColor = viewModel::setSubtitleColor
+                )
             } else {
-                SubtitleDisplay(
-                    text = state.currentText,
-                    colorIndex = state.subtitleColorIndex,
-                    isTranscribing = state.isTranscribing
-                )
-
-                Spacer(Modifier.height(16.dp))
-
-                SubtitleColorPicker(
-                    selected = state.subtitleColorIndex,
-                    onSelect = viewModel::setSubtitleColor
-                )
-
-                Spacer(Modifier.height(24.dp))
-
-                TranscribeButton(
-                    isTranscribing = state.isTranscribing,
-                    onClick = viewModel::toggleTranscription
+                VoskContent(
+                    state = state,
+                    onDownload = viewModel::downloadModel,
+                    onToggleTranscription = viewModel::toggleTranscription,
+                    onSetSubtitleColor = viewModel::setSubtitleColor
                 )
             }
 
@@ -123,20 +123,7 @@ fun TranscriptionScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(state.history) { entry ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(entry.text, style = MaterialTheme.typography.bodyLarge)
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    formatDate(entry.createdAt),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
+                        HistoryCard(entry)
                     }
                 }
             }
@@ -145,7 +132,107 @@ fun TranscriptionScreen(
 }
 
 @Composable
-private fun ModelDownloadCard(onDownload: () -> Unit) {
+private fun EngineSelector(
+    selected: SelectedEngine,
+    isPremium: Boolean,
+    onSelect: (SelectedEngine) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+    ) {
+        FilterChip(
+            selected = selected == SelectedEngine.VOSK,
+            onClick = { onSelect(SelectedEngine.VOSK) },
+            label = { Text(stringResource(R.string.transcription_engine_vosk)) },
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer
+            )
+        )
+        FilterChip(
+            selected = selected == SelectedEngine.WHISPER,
+            onClick = { onSelect(SelectedEngine.WHISPER) },
+            label = { Text(stringResource(R.string.transcription_engine_whisper)) },
+            enabled = isPremium,
+            leadingIcon = if (!isPremium) {
+                { Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp)) }
+            } else null,
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = MaterialTheme.colorScheme.tertiaryContainer
+            )
+        )
+    }
+}
+
+@Composable
+private fun VoskContent(
+    state: TranscriptionUiState,
+    onDownload: () -> Unit,
+    onToggleTranscription: () -> Unit,
+    onSetSubtitleColor: (Int) -> Unit
+) {
+    if (!state.isModelReady && !state.isDownloading) {
+        ModelDownloadCard(
+            title = stringResource(R.string.transcription_download_model),
+            sizeMb = "50",
+            onDownload = onDownload
+        )
+    } else if (state.isDownloading) {
+        DownloadProgressCard(progress = state.downloadProgress)
+    } else {
+        TranscriptionControls(
+            text = state.currentText,
+            colorIndex = state.subtitleColorIndex,
+            isTranscribing = state.isTranscribing,
+            onToggle = onToggleTranscription,
+            onSetColor = onSetSubtitleColor
+        )
+    }
+}
+
+@Composable
+private fun WhisperContent(
+    state: TranscriptionUiState,
+    onDownload: () -> Unit,
+    onToggleTranscription: () -> Unit,
+    onSetSubtitleColor: (Int) -> Unit
+) {
+    if (!state.whisperModelReady && !state.whisperDownloading) {
+        ModelDownloadCard(
+            title = stringResource(R.string.transcription_whisper_download),
+            sizeMb = state.selectedWhisperModel.sizeMb.toString(),
+            onDownload = onDownload
+        )
+    } else if (state.whisperDownloading) {
+        DownloadProgressCard(progress = state.whisperDownloadProgress)
+    } else {
+        TranscriptionControls(
+            text = state.currentText,
+            colorIndex = state.subtitleColorIndex,
+            isTranscribing = state.isTranscribing,
+            onToggle = onToggleTranscription,
+            onSetColor = onSetSubtitleColor
+        )
+    }
+}
+
+@Composable
+private fun TranscriptionControls(
+    text: String,
+    colorIndex: Int,
+    isTranscribing: Boolean,
+    onToggle: () -> Unit,
+    onSetColor: (Int) -> Unit
+) {
+    SubtitleDisplay(text = text, colorIndex = colorIndex, isTranscribing = isTranscribing)
+    Spacer(Modifier.height(16.dp))
+    SubtitleColorPicker(selected = colorIndex, onSelect = onSetColor)
+    Spacer(Modifier.height(24.dp))
+    TranscribeButton(isTranscribing = isTranscribing, onClick = onToggle)
+}
+
+@Composable
+private fun ModelDownloadCard(title: String, sizeMb: String, onDownload: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp)
@@ -162,13 +249,13 @@ private fun ModelDownloadCard(onDownload: () -> Unit) {
             )
             Spacer(Modifier.height(16.dp))
             Text(
-                stringResource(R.string.transcription_download_model),
+                title,
                 style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                stringResource(R.string.transcription_model_size, "50"),
+                stringResource(R.string.transcription_model_size, sizeMb),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -269,7 +356,7 @@ private fun SubtitleColorPicker(selected: Int, onSelect: (Int) -> Unit) {
             "Blanco" to SubtitleWhite,
             "Negro" to SubtitleBlack,
             "Amarillo" to SubtitleYellow
-        ).forEachIndexed { index, (label, color) ->
+        ).forEachIndexed { index, (_, color) ->
             val isSelected = selected == index
             FilledIconButton(
                 onClick = { onSelect(index) },
@@ -312,6 +399,34 @@ private fun TranscribeButton(isTranscribing: Boolean, onClick: () -> Unit) {
             else stringResource(R.string.transcription_start),
             style = MaterialTheme.typography.titleMedium
         )
+    }
+}
+
+@Composable
+private fun HistoryCard(entry: com.naturasonic.app.data.local.entity.TranscriptionEntry) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(entry.text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Text(
+                    entry.engine,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                formatDate(entry.createdAt),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
