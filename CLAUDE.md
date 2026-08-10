@@ -404,6 +404,16 @@ npx tsc --noEmit     # Verificar tipos
 
 ---
 
+## Checkpoint de estado (commit dd9c514, 2026-08-10)
+
+**PRPs cerrados**: PRP-001 (scaffold Fases 0-7), PRP-002 (whisper.cpp FetchContent), PRP-003 (JNI bridge unificado), PRP-004 (GgmlModelManager + assets).
+
+**Pipeline nativo**: Oboe 48kHz → AudioProcessor → VolumeLimiter → WhisperBridge (decimación 3:1 en C++, thread dedicado, whisper_full por segmentos 10s) → texto via JNI polling → StateFlow → Compose. Librería única `libnaturasonic.so`. Modelos GGML gestionados por `GgmlModelManager` (assets con `noCompress("bin")` + fallback descarga HuggingFace).
+
+**Siguiente paso**: PRP-005 — Detección de alertas con YAMNet/TFLite.
+
+---
+
 Agent-First. El usuario dicta el objetivo; TÚ ejecutas a la perfección
 
 **Este archivo es la fuente de verdad para el desarrollo en este proyecto. Todas las decisiones de código deben alinearse con estos principios**

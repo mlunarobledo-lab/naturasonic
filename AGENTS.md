@@ -275,10 +275,29 @@ Error -> Fix -> Documentar en PRP -> ¿Cumple algun criterio? -> Si: a AGENTS.md
 | 6 | Diseño UltraView, Nota de Salud y UX Accesible | COMPLETADO |
 | 7 | Monetización, Portabilidad, Legal y Play Store | COMPLETADO |
 
+### Pipeline nativo de audio (estado al commit dd9c514)
+
+```
+Oboe 48kHz mono (onAudioReady)
+  ├─► AudioProcessor (EQ biquad + amplificación + noise gate)
+  ├─► VolumeLimiter (85/70 dB)
+  ├─► latestBuffer_ (para consumidores Kotlin: Vosk, YAMNet)
+  └─► WhisperBridge::feedAudio() ─► buffer mutex ─► thread dedicado
+        └─► resample48to16 (decimación 3:1, promediado anti-alias)
+            └─► whisper_full() (segmentos 10s, 4 threads, lang=es)
+                └─► texto via JNI polling (150ms) ─► StateFlow ─► Compose
+
+Modelo GGML: GgmlModelManager verifica filesDir → extrae assets (noCompress bin) → Ready(path) → nativeInitWhisper
+Librería única: libnaturasonic.so (Oboe + PSAP + WhisperBridge + JNI)
+```
+
+### Siguiente paso acordado
+
+**PRP-005: Detección de alertas con YAMNet** — migrar YAMNet/TFLite al patrón WhisperBridge (C++ con thread dedicado) o mantener en Kotlin según peso de inferencia. Evaluar en la fase de mapeo.
+
 ### Fuera de alcance (diferido)
 
 - Auracast (broadcast LE Audio) — requiere Android 16+ y hardware con baja penetración
-- whisper.cpp JNI completo — stub presente, build del modelo binario es trabajo futuro
 - Play Store listing, Data Safety section y signing config release — requieren Google Play Console
 <!-- PRAXIS:PROJECT_CONTEXT_END -->
 
