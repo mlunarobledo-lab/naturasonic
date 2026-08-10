@@ -217,8 +217,66 @@ Error -> Fix -> Documentar en PRP -> ¿Cumple algun criterio? -> Si: a AGENTS.md
 ---
 
 <!-- PRAXIS:PROJECT_CONTEXT_START -->
-<!-- La skill `praxis-init` llena esta seccion al analizar un proyecto existente.
-     En un proyecto nuevo arrancado por Praxis queda vacia (el scaffold ya describe el proyecto). -->
+## Contexto del Proyecto — NaturaSonic
+
+**Tipo**: App Android nativa (Kotlin 2.0 + Jetpack Compose + C++17/NDK)
+**Compatibilidad Praxis**: REPLACE (no aplica Trust Stack web)
+**Repositorio**: `mlunarobledo-lab/naturasonic` (GitHub)
+**Branch principal**: `main`
+
+### Stack real del proyecto
+
+| Capa | Tecnología |
+|------|------------|
+| Lenguaje | Kotlin 2.0.21 / C++17 |
+| UI | Jetpack Compose + Material 3 |
+| Audio nativo | Oboe 1.9 (C++ vía JNI, FetchContent) |
+| DSP/PSAP | Implementación directa: biquad EQ 10 bandas, noise gate, volume limiter |
+| Transcripción | Vosk 0.3.45+ (offline, streaming, reflection API) |
+| Detección sonora | TensorFlow Lite + YAMNet (7 clases de alerta) |
+| Bluetooth | LE Audio (API 33+), ASHA (API 29+), Classic |
+| DI | Hilt 2.52 |
+| BD local | Room 2.6.1 |
+| Preferencias | DataStore 1.1.1 |
+| Navegación | Navigation Compose 2.8.5 |
+| Estado | ViewModel + StateFlow |
+| Billing | Google Play Billing Library 7.1.1 |
+| Backup | Android Auto Backup (Room DB + DataStore, excluye ML models) |
+| Build | Gradle 8.7.3 + CMake 3.22.1 + NDK (arm64-v8a, armeabi-v7a, x86_64) |
+
+### Comandos de validación
+
+```bash
+./gradlew assembleDebug        # Build debug (equivale a npm run build)
+./gradlew assembleRelease      # Build release (requiere signing config)
+./gradlew lint                 # Lint (equivale a npm run lint)
+./gradlew connectedAndroidTest # Tests instrumentados en dispositivo/emulador
+```
+
+### Hitos cerrados
+
+| PRP | Descripción | Estado | Fecha cierre |
+|-----|-------------|--------|--------------|
+| PRP-001 | Scaffold completo: Fases 0-7 (audio pipeline, BT, PSAP, transcripción, detección, UI, billing) | COMPLETADO | 2026-08-03 |
+
+### Fases implementadas en PRP-001
+
+| Fase | Nombre | Estado |
+|------|--------|--------|
+| 0 | Scaffold de Stack (REPLACE) | COMPLETADO |
+| 1 | Pipeline de Audio con Oboe | COMPLETADO |
+| 2 | Conectividad Bluetooth (LE Audio + ASHA) | COMPLETADO |
+| 3 | Motor PSAP y Procesamiento de Señal | COMPLETADO |
+| 4 | Transcripción Offline y Detección de Alertas | COMPLETADO |
+| 5 | Micrófono Remoto y Modos de Uso | COMPLETADO |
+| 6 | Diseño UltraView, Nota de Salud y UX Accesible | COMPLETADO |
+| 7 | Monetización, Portabilidad, Legal y Play Store | COMPLETADO |
+
+### Fuera de alcance (diferido)
+
+- Auracast (broadcast LE Audio) — requiere Android 16+ y hardware con baja penetración
+- whisper.cpp JNI completo — stub presente, build del modelo binario es trabajo futuro
+- Play Store listing, Data Safety section y signing config release — requieren Google Play Console
 <!-- PRAXIS:PROJECT_CONTEXT_END -->
 
 ---
@@ -319,24 +377,23 @@ Conectado via URL. Gestiona deployments, dominios, variables de entorno y logs d
 
 Antes de dar por cerrada cualquier feature o PRP:
 
-- [ ] Tipos verificados (`npx tsc --noEmit` sin errores)
-- [ ] Lint limpio (`npm run lint`)
-- [ ] Validación visual vía Playwright (screenshot de flujo feliz + flujo de error)
-- [ ] RLS activo en todas las tablas nuevas
-- [ ] Entrada de usuario validada con Zod
+- [ ] Build exitoso (`./gradlew assembleDebug` sin errores)
+- [ ] Lint limpio (`./gradlew lint`)
+- [ ] Compilación nativa C++ exitosa en las 3 arquitecturas (arm64-v8a, armeabi-v7a, x86_64)
 - [ ] Registro de aprendizajes actualizado si hubo errores
 - [ ] Actualización de documentación relevante en el proyecto (README.md/AGENTS.md)
-- [ ] Build de producción exitoso (`npm run build`)
+- [ ] Validación visual en dispositivo/emulador cuando aplique
 
 ---
 
-## Comandos npm
+## Comandos de build
 
 ```bash
-npm run dev          # Servidor (Turbopack, auto-detecta puerto)
-npm run build        # Build produccion
-npm run lint         # ESLint
-npx tsc --noEmit     # Verificar tipos
+./gradlew assembleDebug        # Build debug
+./gradlew assembleRelease      # Build release (requiere signing config)
+./gradlew lint                 # Lint Android
+./gradlew connectedAndroidTest # Tests instrumentados
+./gradlew clean                # Limpiar build cache
 ```
 
 ---
