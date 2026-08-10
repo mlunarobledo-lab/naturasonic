@@ -8,6 +8,7 @@ import com.naturasonic.app.billing.hasAccess
 import com.naturasonic.app.data.local.dao.TranscriptionDao
 import com.naturasonic.app.data.local.entity.TranscriptionEntry
 import com.naturasonic.app.data.preferences.UserPreferences
+import com.naturasonic.app.transcription.ModelState
 import com.naturasonic.app.transcription.VoskTranscriptionEngine
 import com.naturasonic.app.transcription.WhisperModel
 import com.naturasonic.app.transcription.WhisperTranscriptionEngine
@@ -35,7 +36,8 @@ data class TranscriptionUiState(
     val whisperModelReady: Boolean = false,
     val whisperDownloading: Boolean = false,
     val whisperDownloadProgress: Float = 0f,
-    val selectedWhisperModel: WhisperModel = WhisperModel.TINY
+    val selectedWhisperModel: WhisperModel = WhisperModel.TINY,
+    val whisperModelState: ModelState = ModelState.Uninitialized
 )
 
 @HiltViewModel
@@ -64,11 +66,12 @@ class TranscriptionViewModel @Inject constructor(
         whisperEngine.isModelReady,
         _whisperDownloading,
         whisperEngine.downloadProgress,
-        whisperEngine.selectedModel
+        whisperEngine.selectedModel,
+        whisperEngine.modelManager.state
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         val engine = values[7] as SelectedEngine
-        val isWhisper = engine == SelectedEngine.WHISPER
+        val modelState = values[13] as ModelState
 
         TranscriptionUiState(
             isTranscribing = values[0] as Boolean,
@@ -83,7 +86,8 @@ class TranscriptionViewModel @Inject constructor(
             whisperModelReady = values[9] as Boolean,
             whisperDownloading = values[10] as Boolean,
             whisperDownloadProgress = values[11] as Float,
-            selectedWhisperModel = values[12] as WhisperModel
+            selectedWhisperModel = values[12] as WhisperModel,
+            whisperModelState = modelState
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TranscriptionUiState())
 
@@ -91,8 +95,10 @@ class TranscriptionViewModel @Inject constructor(
         if (voskEngine.isModelDownloaded()) {
             voskEngine.initializeModel()
         }
-        if (whisperEngine.isModelDownloaded()) {
-            whisperEngine.initializeModel()
+        viewModelScope.launch {
+            if (whisperEngine.isModelDownloaded()) {
+                whisperEngine.initializeModel()
+            }
         }
     }
 

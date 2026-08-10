@@ -69,6 +69,10 @@ android {
         }
     }
 
+    aaptOptions {
+        noCompress += "bin"
+    }
+
     room {
         schemaDirectory("$projectDir/schemas")
     }

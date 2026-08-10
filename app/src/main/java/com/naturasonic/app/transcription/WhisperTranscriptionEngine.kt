@@ -23,7 +23,8 @@ import javax.inject.Singleton
 @Singleton
 class WhisperTranscriptionEngine @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val oboeEngine: OboeAudioEngine
+    private val oboeEngine: OboeAudioEngine,
+    val modelManager: GgmlModelManager
 ) {
     private val _currentText = MutableStateFlow("")
     val currentText: StateFlow<String> = _currentText.asStateFlow()
@@ -46,17 +47,13 @@ class WhisperTranscriptionEngine @Inject constructor(
     private fun getModelDir(): File = File(context.filesDir, "models/whisper")
 
     fun isModelDownloaded(model: WhisperModel = _selectedModel.value): Boolean {
-        val modelFile = File(getModelDir(), model.fileName)
-        return modelFile.exists() && modelFile.length() > 0
+        return modelManager.isModelInStorage(model)
     }
 
     fun selectModel(model: WhisperModel) {
         _selectedModel.value = model
-        if (isModelDownloaded(model)) {
+        scope.launch {
             initializeModel(model)
-        } else {
-            releaseContext()
-            _isModelReady.value = false
         }
     }
 
@@ -100,15 +97,22 @@ class WhisperTranscriptionEngine @Inject constructor(
         }
     }
 
-    fun initializeModel(model: WhisperModel = _selectedModel.value) {
+    suspend fun initializeModel(model: WhisperModel = _selectedModel.value) {
         releaseContext()
-        val modelFile = File(getModelDir(), model.fileName)
-        if (!modelFile.exists()) return
+
+        val path = modelManager.ensureModel(model)
+        if (path == null) {
+            _isModelReady.value = false
+            return
+        }
 
         val handle = oboeEngine.nativeHandle
-        if (handle == 0L) return
+        if (handle == 0L) {
+            _isModelReady.value = false
+            return
+        }
 
-        val ok = nativeInitWhisper(handle, modelFile.absolutePath)
+        val ok = nativeInitWhisper(handle, path)
         _isModelReady.value = ok
     }
 

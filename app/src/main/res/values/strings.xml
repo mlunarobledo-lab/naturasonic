@@ -31,6 +31,11 @@
     <string name="transcription_engine_label">Motor de transcripción</string>
     <string name="transcription_whisper_premium_required">Whisper requiere suscripción premium</string>
     <string name="transcription_whisper_download">Descargar modelo Whisper</string>
+    <string name="transcription_preparing_model">Preparando modelo de voz…</string>
+    <string name="transcription_downloading_model">Descargando modelo de voz…</string>
+    <string name="transcription_initializing_model">Inicializando motor Whisper…</string>
+    <string name="transcription_model_error">Error al preparar modelo</string>
+    <string name="transcription_retry">Reintentar</string>
 
     <string name="alert_siren">Sirena detectada</string>
     <string name="alert_doorbell">Timbre detectado</string>

@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.naturasonic.app.R
+import com.naturasonic.app.transcription.ModelState
 import com.naturasonic.app.ui.theme.SubtitleBlack
 import com.naturasonic.app.ui.theme.SubtitleWhite
 import com.naturasonic.app.ui.theme.SubtitleYellow
@@ -178,7 +179,10 @@ private fun VoskContent(
             onDownload = onDownload
         )
     } else if (state.isDownloading) {
-        DownloadProgressCard(progress = state.downloadProgress)
+        ProgressCard(
+            progress = state.downloadProgress,
+            label = stringResource(R.string.transcription_downloading_model)
+        )
     } else {
         TranscriptionControls(
             text = state.currentText,
@@ -197,22 +201,49 @@ private fun WhisperContent(
     onToggleTranscription: () -> Unit,
     onSetSubtitleColor: (Int) -> Unit
 ) {
-    if (!state.whisperModelReady && !state.whisperDownloading) {
-        ModelDownloadCard(
-            title = stringResource(R.string.transcription_whisper_download),
-            sizeMb = state.selectedWhisperModel.sizeMb.toString(),
-            onDownload = onDownload
-        )
-    } else if (state.whisperDownloading) {
-        DownloadProgressCard(progress = state.whisperDownloadProgress)
-    } else {
-        TranscriptionControls(
-            text = state.currentText,
-            colorIndex = state.subtitleColorIndex,
-            isTranscribing = state.isTranscribing,
-            onToggle = onToggleTranscription,
-            onSetColor = onSetSubtitleColor
-        )
+    when (val modelState = state.whisperModelState) {
+        is ModelState.Copying -> {
+            ProgressCard(
+                progress = modelState.progress,
+                label = stringResource(R.string.transcription_preparing_model)
+            )
+        }
+        is ModelState.Error -> {
+            ErrorCard(
+                message = modelState.message,
+                onRetry = onDownload
+            )
+        }
+        is ModelState.Ready -> {
+            if (state.whisperModelReady) {
+                TranscriptionControls(
+                    text = state.currentText,
+                    colorIndex = state.subtitleColorIndex,
+                    isTranscribing = state.isTranscribing,
+                    onToggle = onToggleTranscription,
+                    onSetColor = onSetSubtitleColor
+                )
+            } else {
+                ProgressCard(
+                    progress = -1f,
+                    label = stringResource(R.string.transcription_initializing_model)
+                )
+            }
+        }
+        is ModelState.Uninitialized -> {
+            if (state.whisperDownloading) {
+                ProgressCard(
+                    progress = state.whisperDownloadProgress,
+                    label = stringResource(R.string.transcription_downloading_model)
+                )
+            } else {
+                ModelDownloadCard(
+                    title = stringResource(R.string.transcription_whisper_download),
+                    sizeMb = state.selectedWhisperModel.sizeMb.toString(),
+                    onDownload = onDownload
+                )
+            }
+        }
     }
 }
 
@@ -272,7 +303,7 @@ private fun ModelDownloadCard(title: String, sizeMb: String, onDownload: () -> U
 }
 
 @Composable
-private fun DownloadProgressCard(progress: Float) {
+private fun ProgressCard(progress: Float, label: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp)
@@ -281,14 +312,52 @@ private fun DownloadProgressCard(progress: Float) {
             modifier = Modifier.padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Descargando modelo de voz...", style = MaterialTheme.typography.titleMedium)
+            Text(label, style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(16.dp))
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.fillMaxWidth()
+            if (progress >= 0f) {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                Text("${(progress * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
+            } else {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+        }
+    }
+}
+
+@Composable
+private fun ErrorCard(message: String, onRetry: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                stringResource(R.string.transcription_model_error),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.error
             )
             Spacer(Modifier.height(8.dp))
-            Text("${(progress * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(16.dp))
+            Button(
+                onClick = onRetry,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(stringResource(R.string.transcription_retry))
+            }
         }
     }
 }
