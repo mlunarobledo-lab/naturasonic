@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NaturaSonic</string>
+
+    <string name="permission_microphone_title">Acceso al micrófono</string>
+    <string name="permission_microphone_rationale">NaturaSonic necesita acceso al micrófono para capturar y amplificar el sonido ambiente a través de tus auriculares.</string>
+    <string name="permission_bluetooth_title">Conexión Bluetooth</string>
+    <string name="permission_bluetooth_rationale">NaturaSonic necesita Bluetooth para conectarse a tus auriculares y enviar el audio amplificado.</string>
+
+    <string name="disclaimer_psap_title">Aviso importante</string>
+    <string name="disclaimer_psap_body">Este producto no es un dispositivo médico. No está diseñado para diagnosticar, tratar ni prevenir pérdida auditiva. NaturaSonic es un producto de amplificación de sonido personal (PSAP) destinado a mejorar la experiencia auditiva en situaciones cotidianas. Si experimenta problemas de audición, consulte a un profesional de salud auditiva.</string>
+
+    <string name="health_note_title">Nota de salud</string>
+    <string name="health_note_body">Si experimenta molestias en sus oídos, dolor, zumbidos o cualquier síntoma auditivo, se sugiere la visita a un médico especialista otorrinolaringólogo o audiólogo.</string>
+    <string name="health_note_find_specialist">Buscar especialista cercano</string>
+
+    <string name="volume_warning_title">Precaución auditiva</string>
+    <string name="volume_warning_body">Has alcanzado 1 hora de escucha continua. Para proteger tu audición, el volumen se ha reducido automáticamente a un nivel seguro (70 dB). Puedes pausar y retomar cuando desees.</string>
+
+    <string name="mode_conversation">Conversación</string>
+    <string name="mode_entertainment">Entretenimiento</string>
+    <string name="mode_outdoor">Exterior</string>
+    <string name="mode_remote_mic">Micrófono Remoto</string>
+
+    <string name="transcription_start">Iniciar transcripción</string>
+    <string name="transcription_stop">Detener transcripción</string>
+    <string name="transcription_download_model">Descargar modelo de voz</string>
+    <string name="transcription_model_size">Tamaño aproximado: %1$s MB</string>
+
+    <string name="alert_siren">Sirena detectada</string>
+    <string name="alert_doorbell">Timbre detectado</string>
+    <string name="alert_smoke_alarm">Alarma de humo detectada</string>
+    <string name="alert_baby_cry">Llanto de bebé detectado</string>
+
+    <string name="onboarding_welcome_title">Bienvenido a NaturaSonic</string>
+    <string name="onboarding_welcome_subtitle">Tu asistente de audio personal</string>
+    <string name="onboarding_bt_check_title">Verificación de compatibilidad</string>
+    <string name="onboarding_bt_compatible">Tu dispositivo es compatible con %1$s</string>
+    <string name="onboarding_bt_classic_warning">Tu dispositivo solo soporta Bluetooth Classic. La experiencia de audio puede tener mayor latencia.</string>
+
+    <string name="settings_title">Configuración</string>
+    <string name="settings_equalizer">Ecualizador</string>
+    <string name="settings_profiles">Perfiles de audio</string>
+    <string name="settings_font_color">Color de subtítulos</string>
+    <string name="settings_about">Acerca de</string>
+    <string name="settings_disclaimer">Aviso legal PSAP</string>
+
+    <string name="premium_title">NaturaSonic Premium</string>
+    <string name="premium_subtitle">Desbloquea todo el potencial de tu audio</string>
+    <string name="premium_feature_eq">Ecualizador avanzado</string>
+    <string name="premium_feature_transcription">Transcripción continua</string>
+    <string name="premium_feature_whisper">Transcripción de alta fidelidad</string>
+    <string name="premium_feature_remote_mic">Micrófono remoto</string>
+    <string name="premium_feature_profiles">Perfiles de entorno ilimitados</string>
+
+    <string name="nav_home">Inicio</string>
+    <string name="nav_transcription">Transcripción</string>
+    <string name="nav_settings">Ajustes</string>
+
+    <string name="notification_audio_service_title">NaturaSonic activo</string>
+    <string name="notification_audio_service_text">Amplificación de audio en curso</string>
+    <string name="notification_channel_audio">Servicio de audio</string>
+    <string name="notification_channel_alerts">Alertas de sonido</string>
+</resources>

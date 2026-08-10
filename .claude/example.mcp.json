@@ -1,0 +1,32 @@
+{
+  "_readme": "Praxis — ejemplo de .mcp.json. Copia a .mcp.json (raiz del proyecto) y sustituye placeholders. La extension Praxis gestiona activacion/desactivacion de estos MCPs desde el sidebar; esto es solo referencia para configuracion manual.",
+  "mcpServers": {
+    "next-devtools": {
+      "command": "npx",
+      "args": ["-y", "next-devtools-mcp@latest"]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"]
+    },
+    "supabase-prod": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=<PROJECT_REF>",
+      "headers": {
+        "Authorization": "Bearer <SUPABASE_ACCESS_TOKEN>"
+      }
+    },
+    "stripe": {
+      "type": "http",
+      "url": "https://mcp.stripe.com"
+    },
+    "vercel": {
+      "type": "http",
+      "url": "https://mcp.vercel.com"
+    },
+    "sentry": {
+      "type": "http",
+      "url": "https://mcp.sentry.dev/mcp"
+    }
+  }
+}

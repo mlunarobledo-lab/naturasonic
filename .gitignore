@@ -1,0 +1,63 @@
+# Android
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/app/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# Native
+*.o
+*.so
+*.a
+
+# Keystore
+*.jks
+*.keystore
+
+# Generated
+/app/schemas/
+
+# ML Models (downloaded on-device)
+/app/src/main/assets/models/
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle/libs.versions.toml
+
+# OS
+.DS_Store
+Thumbs.db
+.AppleDouble
+.LSOverride
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.sublime-project
+.sublime-workspace
+
+# Environment
+.env
+.env.local
+.env*.local
+!.env.example
+
+# Claude Code
+.claude/skills/**/node_modules
+.claude/plugins
+*.mcp.json
+!example.mcp.json

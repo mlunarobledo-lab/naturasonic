@@ -1,0 +1,81 @@
+package com.naturasonic.app.audio
+
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class OboeAudioEngine @Inject constructor() {
+
+    private var engineHandle: Long = 0L
+
+    val isRunning: Boolean get() = engineHandle != 0L
+
+    fun create() {
+        if (engineHandle == 0L) {
+            engineHandle = nativeCreateEngine()
+        }
+    }
+
+    fun start(): Boolean {
+        if (engineHandle == 0L) create()
+        return nativeStart(engineHandle)
+    }
+
+    fun stop() {
+        if (engineHandle != 0L) {
+            nativeStop(engineHandle)
+        }
+    }
+
+    fun setAmplification(level: Float) {
+        if (engineHandle != 0L) {
+            nativeSetAmplification(engineHandle, level.coerceIn(0f, 1f))
+        }
+    }
+
+    fun setEqBands(bands: FloatArray) {
+        if (engineHandle != 0L) {
+            nativeSetEqBands(engineHandle, bands)
+        }
+    }
+
+    fun setNoiseSuppressionEnabled(enabled: Boolean) {
+        if (engineHandle != 0L) {
+            nativeSetNoiseSuppressionEnabled(engineHandle, enabled)
+        }
+    }
+
+    fun setVolumeLimitDb(limitDb: Float) {
+        if (engineHandle != 0L) {
+            nativeSetVolumeLimitDb(engineHandle, limitDb)
+        }
+    }
+
+    fun getAudioBuffer(): FloatArray? {
+        if (engineHandle == 0L) return null
+        return nativeGetAudioBuffer(engineHandle)
+    }
+
+    fun destroy() {
+        if (engineHandle != 0L) {
+            nativeDestroy(engineHandle)
+            engineHandle = 0L
+        }
+    }
+
+    private external fun nativeCreateEngine(): Long
+    private external fun nativeStart(engineHandle: Long): Boolean
+    private external fun nativeStop(engineHandle: Long)
+    private external fun nativeSetAmplification(engineHandle: Long, level: Float)
+    private external fun nativeSetEqBands(engineHandle: Long, bands: FloatArray)
+    private external fun nativeSetNoiseSuppressionEnabled(engineHandle: Long, enabled: Boolean)
+    private external fun nativeSetVolumeLimitDb(engineHandle: Long, limitDb: Float)
+    private external fun nativeGetAudioBuffer(engineHandle: Long): FloatArray?
+    private external fun nativeDestroy(engineHandle: Long)
+
+    companion object {
+        init {
+            System.loadLibrary("naturasonic")
+        }
+    }
+}

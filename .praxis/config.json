@@ -1,0 +1,46 @@
+{
+  "version": 3,
+  "skills": {
+    "active": [
+      "brief",
+      "bucle-agentico",
+      "build-with-agent-team",
+      "frontend-design",
+      "infra-vps",
+      "playwright-cli",
+      "praxis-init",
+      "prp",
+      "skill-creator",
+      "supabase-admin"
+    ],
+    "lastUpdated": "2026-08-01T18:01:27.881Z"
+  },
+  "mcps": {
+    "managed": [
+      "next-devtools",
+      "playwright",
+      "supabase-prod",
+      "vercel"
+    ],
+    "lastUpdated": "2026-08-05T16:40:32.981Z"
+  },
+  "praxis_owns": {
+    "skills": [
+      "brief",
+      "prp",
+      "build-with-agent-team",
+      "bucle-agentico",
+      "praxis-init",
+      "infra-vps",
+      "frontend-design",
+      "playwright-cli",
+      "skill-creator"
+    ],
+    "mcps": [
+      "next-devtools",
+      "playwright"
+    ]
+  },
+  "mode": "managed",
+  "provider": "claude"
+}

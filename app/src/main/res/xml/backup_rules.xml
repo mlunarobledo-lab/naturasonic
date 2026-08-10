@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <include domain="database" path="naturasonic.db" />
+    <include domain="sharedpref" path="." />
+    <include domain="file" path="datastore/" />
+    <exclude domain="file" path="models/" />
+    <exclude domain="cache" path="." />
+    <exclude domain="external" path="." />
+</full-backup-content>
