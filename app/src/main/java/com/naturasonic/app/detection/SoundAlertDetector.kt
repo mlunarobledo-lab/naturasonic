@@ -75,7 +75,23 @@ class SoundAlertDetector @Inject constructor(
         _isRunning.value = false
     }
 
-    fun processAudioBuffer(buffer: FloatArray) {
+    fun processAudio48kHz(buffer48k: FloatArray) {
+        if (buffer48k.size < YAMNET_48K_INPUT_SIZE) return
+        val resampled = resample48to16(buffer48k)
+        processAudioBuffer(resampled)
+    }
+
+    private fun resample48to16(input: FloatArray): FloatArray {
+        val outputSize = input.size / 3
+        val output = FloatArray(outputSize)
+        for (i in 0 until outputSize) {
+            val srcIdx = i * 3
+            output[i] = (input[srcIdx] + input[srcIdx + 1] + input[srcIdx + 2]) / 3f
+        }
+        return output
+    }
+
+    private fun processAudioBuffer(buffer: FloatArray) {
         val audio = tensorAudio ?: return
         val cls = classifier ?: return
         if (!_isRunning.value) return
@@ -132,5 +148,6 @@ class SoundAlertDetector @Inject constructor(
     companion object {
         private const val CONFIDENCE_THRESHOLD = 0.3f
         private const val YAMNET_INPUT_SIZE = 15600
+        private const val YAMNET_48K_INPUT_SIZE = YAMNET_INPUT_SIZE * 3
     }
 }

@@ -10,6 +10,7 @@
 NaturaSonicEngine::NaturaSonicEngine()
     : limiter_(85.0f) {
     captureBuffer_.resize(kFramesPerBuffer * kChannelCount);
+    yamnetBuffer_.resize(kYamnetBufferSize, 0.0f);
 }
 
 NaturaSonicEngine::~NaturaSonicEngine() {
@@ -80,6 +81,22 @@ std::vector<float> NaturaSonicEngine::getLatestAudioBuffer() {
     return latestBuffer_;
 }
 
+std::vector<float> NaturaSonicEngine::getYamnetAudioBuffer() {
+    std::lock_guard<std::mutex> lock(yamnetMutex_);
+    if (!yamnetBufferFull_) {
+        return std::vector<float>(yamnetBuffer_.begin(),
+                                  yamnetBuffer_.begin() + yamnetWritePos_);
+    }
+    std::vector<float> result(kYamnetBufferSize);
+    size_t tail = kYamnetBufferSize - yamnetWritePos_;
+    std::copy(yamnetBuffer_.begin() + yamnetWritePos_,
+              yamnetBuffer_.end(), result.begin());
+    std::copy(yamnetBuffer_.begin(),
+              yamnetBuffer_.begin() + yamnetWritePos_,
+              result.begin() + tail);
+    return result;
+}
+
 oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
         oboe::AudioStream* stream, void* audioData, int32_t numFrames) {
     if (!running_.load()) return oboe::DataCallbackResult::Stop;
@@ -107,6 +124,18 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
                 }
 
                 whisperBridge_.feedAudio(captureBuffer_.data(), framesToProcess);
+
+                {
+                    std::lock_guard<std::mutex> lock(yamnetMutex_);
+                    for (int i = 0; i < framesToProcess; i++) {
+                        yamnetBuffer_[yamnetWritePos_] = captureBuffer_[i];
+                        yamnetWritePos_++;
+                        if (yamnetWritePos_ >= kYamnetBufferSize) {
+                            yamnetWritePos_ = 0;
+                            yamnetBufferFull_ = true;
+                        }
+                    }
+                }
             } else {
                 std::memset(output, 0, numFrames * kChannelCount * sizeof(float));
             }

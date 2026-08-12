@@ -24,6 +24,7 @@ public:
     void setVolumeLimitDb(float limitDb);
 
     std::vector<float> getLatestAudioBuffer();
+    std::vector<float> getYamnetAudioBuffer();
 
     bool initWhisper(const char* modelPath);
     void releaseWhisper();
@@ -53,9 +54,15 @@ private:
     std::vector<float> latestBuffer_;
     std::mutex bufferMutex_;
 
+    std::vector<float> yamnetBuffer_;
+    size_t yamnetWritePos_ = 0;
+    bool yamnetBufferFull_ = false;
+    std::mutex yamnetMutex_;
+
     std::atomic<bool> running_{false};
 
     static constexpr int kSampleRate = 48000;
     static constexpr int kChannelCount = 1;
     static constexpr int kFramesPerBuffer = 256;
+    static constexpr size_t kYamnetBufferSize = 48000;
 };

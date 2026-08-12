@@ -15,12 +15,14 @@ import com.naturasonic.app.R
 import com.naturasonic.app.audio.AudioSessionManager
 import com.naturasonic.app.audio.OboeAudioEngine
 import com.naturasonic.app.audio.VolumeProtection
+import com.naturasonic.app.detection.SoundAlertDetector
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -30,10 +32,12 @@ class AudioService : Service() {
     @Inject lateinit var audioEngine: OboeAudioEngine
     @Inject lateinit var audioSessionManager: AudioSessionManager
     @Inject lateinit var volumeProtection: VolumeProtection
+    @Inject lateinit var alertDetector: SoundAlertDetector
 
     private val binder = AudioBinder()
     private val serviceScope = CoroutineScope(Dispatchers.Default + Job())
     private var volumeTickJob: Job? = null
+    private var detectionJob: Job? = null
 
     inner class AudioBinder : Binder() {
         fun getService(): AudioService = this@AudioService
@@ -56,12 +60,15 @@ class AudioService : Service() {
         if (started) {
             volumeProtection.onListeningStarted()
             startVolumeProtectionTick()
+            startDetectionLoop()
         }
     }
 
     private fun stopAudio() {
+        detectionJob?.cancel()
         volumeTickJob?.cancel()
         volumeProtection.onListeningStopped()
+        alertDetector.release()
         audioSessionManager.release()
         audioEngine.stop()
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -75,6 +82,23 @@ class AudioService : Service() {
                 val limitDb = volumeProtection.tick()
                 audioEngine.setVolumeLimitDb(limitDb)
                 delay(1000)
+            }
+        }
+    }
+
+    private fun startDetectionLoop() {
+        detectionJob?.cancel()
+        detectionJob = serviceScope.launch {
+            alertDetector.loadModel()
+            delay(1000)
+            while (isActive) {
+                if (alertDetector.isRunning.value) {
+                    val buffer = audioEngine.getYamnetAudioBuffer()
+                    if (buffer != null) {
+                        alertDetector.processAudio48kHz(buffer)
+                    }
+                }
+                delay(DETECTION_INTERVAL_MS)
             }
         }
     }
@@ -115,5 +139,6 @@ class AudioService : Service() {
         const val ACTION_START = "com.naturasonic.START_AUDIO"
         const val ACTION_STOP = "com.naturasonic.STOP_AUDIO"
         const val NOTIFICATION_ID = 1001
+        private const val DETECTION_INTERVAL_MS = 1000L
     }
 }

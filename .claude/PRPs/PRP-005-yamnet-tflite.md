@@ -139,9 +139,10 @@ El pipeline Oboe captura audio a 48kHz. `SoundAlertDetector` obtiene buffers ví
 - **Validación**: Build exitoso con AudioClassifier inicializado vía createFromFileAndOptions, scoreThreshold=0.3, TensorAudio para input
 - **Completada**: 2026-08-12
 
-### Fase 4: Integración con pipeline de audio
+### Fase 4: Integración con pipeline de audio ✅
 - **Objetivo**: SoundAlertDetector recibe audio del pipeline Oboe, detecta alertas, vibra y persiste
-- **Validación**: Flujo end-to-end funcional en emulador/dispositivo
+- **Validación**: Build exitoso con pipeline completo: ring buffer C++ (48kHz, 1s) → JNI → decimación 3:1 Kotlin → AudioClassifier → alertas
+- **Completada**: 2026-08-12
 
 ### Fase 5: Validación final
 - **Objetivo**: Sistema completo funcionando, build limpio, docs actualizados
@@ -165,4 +166,4 @@ El pipeline Oboe captura audio a 48kHz. `SoundAlertDetector` obtiene buffers ví
 
 ---
 
-*PRP en ejecución — Fase 1 en progreso.*
+*PRP en ejecución — Fase 4 completada, Fase 5 pendiente.*

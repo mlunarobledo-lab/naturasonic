@@ -57,6 +57,11 @@ class OboeAudioEngine @Inject constructor() {
         return nativeGetAudioBuffer(engineHandle)
     }
 
+    fun getYamnetAudioBuffer(): FloatArray? {
+        if (engineHandle == 0L) return null
+        return nativeGetYamnetAudioBuffer(engineHandle)
+    }
+
     fun destroy() {
         if (engineHandle != 0L) {
             nativeDestroy(engineHandle)
@@ -72,6 +77,7 @@ class OboeAudioEngine @Inject constructor() {
     private external fun nativeSetNoiseSuppressionEnabled(engineHandle: Long, enabled: Boolean)
     private external fun nativeSetVolumeLimitDb(engineHandle: Long, limitDb: Float)
     private external fun nativeGetAudioBuffer(engineHandle: Long): FloatArray?
+    private external fun nativeGetYamnetAudioBuffer(engineHandle: Long): FloatArray?
     private external fun nativeDestroy(engineHandle: Long)
 
     companion object {
