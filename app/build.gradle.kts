@@ -70,7 +70,7 @@ android {
     }
 
     aaptOptions {
-        noCompress += "bin"
+        noCompress += listOf("bin", "tflite")
     }
 
     room {
@@ -112,6 +112,7 @@ dependencies {
     implementation(libs.play.billing)
     implementation(libs.tensorflow.lite)
     implementation(libs.tensorflow.lite.support)
+    implementation(libs.tensorflow.lite.task.audio)
 
     debugImplementation(libs.leakcanary)
 }
