@@ -32,6 +32,7 @@ data class HomeUiState(
     val isVolumeLocked: Boolean = false,
     val showVolumeWarning: Boolean = false,
     val latestAlert: DetectedAlert? = null,
+    val isAlertDetectionActive: Boolean = false,
     val isBluetoothConnected: Boolean = false,
     val isPremium: Boolean = false
 )
@@ -57,7 +58,8 @@ class HomeViewModel @Inject constructor(
         volumeProtection.isLocked,
         volumeProtection.showWarning,
         alertDetector.latestAlert,
-        billingManager.isPremium
+        billingManager.isPremium,
+        alertDetector.isRunning
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         HomeUiState(
@@ -67,6 +69,7 @@ class HomeViewModel @Inject constructor(
             isVolumeLocked = values[3] as Boolean,
             showVolumeWarning = values[4] as Boolean,
             latestAlert = values[5] as? DetectedAlert,
+            isAlertDetectionActive = values[7] as Boolean,
             isBluetoothConnected = bluetoothManager.connectedDevices.value.any { it.isConnected },
             isPremium = values[6] as Boolean
         )

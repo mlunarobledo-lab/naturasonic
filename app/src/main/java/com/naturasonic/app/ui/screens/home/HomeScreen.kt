@@ -2,7 +2,12 @@ package com.naturasonic.app.ui.screens.home
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,6 +36,12 @@ import androidx.compose.material.icons.filled.Nature
 import androidx.compose.material.icons.filled.Power
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Subtitles
+import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.ChildCare
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Doorbell
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -48,6 +59,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,7 +74,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.naturasonic.app.R
+import com.naturasonic.app.data.local.entity.AlertSoundClass
 import com.naturasonic.app.data.local.entity.AudioMode
+import com.naturasonic.app.detection.DetectedAlert
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,6 +89,17 @@ fun HomeScreen(
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     var showHealthNote by remember { mutableStateOf(false) }
+    var showAlertCard by remember { mutableStateOf(false) }
+    var currentAlert by remember { mutableStateOf<DetectedAlert?>(null) }
+
+    LaunchedEffect(state.latestAlert?.timestamp) {
+        state.latestAlert?.let {
+            currentAlert = it
+            showAlertCard = true
+            delay(5000L)
+            showAlertCard = false
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -125,7 +151,42 @@ fun HomeScreen(
                        else MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(Modifier.height(32.dp))
+            if (state.isAudioActive && state.isAlertDetectionActive) {
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .background(
+                                MaterialTheme.colorScheme.tertiary,
+                                CircleShape
+                            )
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "Detección de alertas activa",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            AnimatedVisibility(
+                visible = showAlertCard,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                currentAlert?.let { alert ->
+                    SoundAlertCard(alert = alert)
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
 
             VolumeControl(
                 volume = state.volume,
@@ -194,11 +255,6 @@ fun HomeScreen(
                 Icon(Icons.Default.LocalHospital, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Buscar especialista cercano")
-            }
-
-            state.latestAlert?.let { alert ->
-                Spacer(Modifier.height(16.dp))
-                AlertBanner(soundClass = alert.soundClass.key)
             }
 
             Spacer(Modifier.height(24.dp))
@@ -431,29 +487,68 @@ private fun ActionCard(
 }
 
 @Composable
-private fun AlertBanner(soundClass: String) {
+private fun SoundAlertCard(alert: DetectedAlert) {
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.errorContainer
         ),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                Icons.Default.Warning,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error
-            )
-            Spacer(Modifier.width(12.dp))
-            Text(
-                "¡Alerta! $soundClass detectado",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onErrorContainer
-            )
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(
+                        MaterialTheme.colorScheme.error.copy(alpha = 0.15f),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = alert.soundClass.icon(),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    alert.soundClass.displayName(),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "Confianza: ${(alert.confidence * 100).toInt()}%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
+                )
+            }
         }
     }
+}
+
+private fun AlertSoundClass.displayName(): String = when (this) {
+    AlertSoundClass.SIREN -> "Sirena detectada"
+    AlertSoundClass.DOORBELL -> "Timbre detectado"
+    AlertSoundClass.BABY_CRY -> "Llanto de bebé detectado"
+    AlertSoundClass.SMOKE_ALARM -> "Alarma de humo detectada"
+    AlertSoundClass.CAR_HORN -> "Claxon detectado"
+    AlertSoundClass.GLASS_BREAK -> "Cristal roto detectado"
+    AlertSoundClass.DOG_BARK -> "Ladrido detectado"
+}
+
+private fun AlertSoundClass.icon(): ImageVector = when (this) {
+    AlertSoundClass.SIREN -> Icons.Default.Campaign
+    AlertSoundClass.DOORBELL -> Icons.Default.Doorbell
+    AlertSoundClass.BABY_CRY -> Icons.Default.ChildCare
+    AlertSoundClass.SMOKE_ALARM -> Icons.Default.LocalFireDepartment
+    AlertSoundClass.CAR_HORN -> Icons.Default.DirectionsCar
+    AlertSoundClass.GLASS_BREAK -> Icons.Default.Warning
+    AlertSoundClass.DOG_BARK -> Icons.Default.Pets
 }

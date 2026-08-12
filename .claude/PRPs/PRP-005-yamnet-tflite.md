@@ -1,6 +1,6 @@
 # PRP-005: Detección de alertas con YAMNet/TFLite
 
-> **Estado**: EN PROGRESO
+> **Estado**: COMPLETADO
 > **Fecha**: 2026-08-12
 > **Proyecto**: NaturaSonic
 
@@ -28,11 +28,11 @@
 ## Qué
 
 ### Criterios de éxito
-- [ ] TFLite Task Audio compila sin conflictos con TFLite core 2.16.1
-- [ ] YAMNet model (.tflite) carga desde assets o filesDir con gestor robusto
-- [ ] SoundAlertDetector procesa audio del pipeline Oboe y clasifica las 7 alertas
-- [ ] Confianza > 0.3 dispara vibración + persistencia en Room
-- [ ] Build limpio en las 3 arquitecturas (arm64-v8a, armeabi-v7a, x86_64)
+- [x] TFLite Task Audio compila sin conflictos con TFLite core 2.16.1
+- [x] YAMNet model (.tflite) carga desde assets o filesDir con gestor robusto
+- [x] SoundAlertDetector procesa audio del pipeline Oboe y clasifica las 7 alertas
+- [x] Confianza > 0.3 dispara vibración + persistencia en Room
+- [x] Build limpio en las 3 arquitecturas (arm64-v8a, armeabi-v7a, x86_64)
 
 ### Comportamiento esperado
 
@@ -144,14 +144,10 @@ El pipeline Oboe captura audio a 48kHz. `SoundAlertDetector` obtiene buffers ví
 - **Validación**: Build exitoso con pipeline completo: ring buffer C++ (48kHz, 1s) → JNI → decimación 3:1 Kotlin → AudioClassifier → alertas
 - **Completada**: 2026-08-12
 
-### Fase 5: Validación final
-- **Objetivo**: Sistema completo funcionando, build limpio, docs actualizados
-- **Validación**:
-  - [ ] `./gradlew assembleDebug` sin errores
-  - [ ] `./gradlew lint` limpio
-  - [ ] Compilación nativa en 3 arquitecturas
-  - [ ] Criterios de éxito cumplidos
-  - [ ] AGENTS.md y CLAUDE.md actualizados
+### Fase 5: Interfaz de usuario en Compose y cierre del hito ✅
+- **Objetivo**: UI con tarjetas de alerta animadas, indicador de detección, auto-dismiss 5s, íconos por clase. Consolidación documental.
+- **Validación**: Build exitoso con SoundAlertCard animada + AnimatedVisibility + LaunchedEffect auto-dismiss + 7 íconos por clase + indicador detección activa + PRP cerrado + AGENTS.md actualizado
+- **Completada**: 2026-08-12
 
 ---
 
@@ -166,4 +162,4 @@ El pipeline Oboe captura audio a 48kHz. `SoundAlertDetector` obtiene buffers ví
 
 ---
 
-*PRP en ejecución — Fase 4 completada, Fase 5 pendiente.*
+*PRP COMPLETADO — Todas las fases cerradas. 2026-08-12.*

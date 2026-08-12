@@ -402,15 +402,20 @@ npx tsc --noEmit     # Verificar tipos
 - **Fix**: `WhisperBridge` C++ recibe audio directamente desde `onAudioReady` de Oboe, resamplea en C++, y procesa en un thread dedicado. El audio nunca cruza JNI hasta convertirse en texto. Target `whisper_jni` eliminado — todo unificado en `libnaturasonic.so`.
 - **Aplicar en**: Cualquier futuro consumidor de audio que haga procesamiento pesado (YAMNet podría migrarse al mismo patrón, modelos ML futuros, análisis espectral). La clave: buffer mutex-protegido alimentado desde el callback de audio + thread dedicado de procesamiento.
 
+**2026-08-12: Ring buffer C++ para consumidores Kotlin que necesitan ventana de audio acumulada**
+- **Error**: `latestBuffer_` solo contiene el último frame (~256 muestras, ~5ms). Consumidores ML como YAMNet necesitan ~1s de audio continuo (48000 muestras). Polling rápido desde Kotlin pierde >90% del audio entre lecturas.
+- **Fix**: Ring buffer dedicado (`yamnetBuffer_`, 48000 float, 1s a 48kHz) alimentado desde `onAudioReady` con mutex propio. JNI getter devuelve el buffer completo en orden cronológico. La decimación 3:1 se hace en Kotlin (consumidor ligero) no en C++.
+- **Aplicar en**: Cualquier futuro consumidor Kotlin que necesite una ventana de audio mayor que un frame de callback (clasificadores ML, análisis espectral, grabación). Patrón: ring buffer C++ con mutex dedicado + JNI getter + resampling en la capa del consumidor.
+
 ---
 
-## Checkpoint de estado (commit dd9c514, 2026-08-10)
+## Checkpoint de estado (2026-08-12)
 
-**PRPs cerrados**: PRP-001 (scaffold Fases 0-7), PRP-002 (whisper.cpp FetchContent), PRP-003 (JNI bridge unificado), PRP-004 (GgmlModelManager + assets).
+**PRPs cerrados**: PRP-001 (scaffold Fases 0-7), PRP-002 (whisper.cpp FetchContent), PRP-003 (JNI bridge unificado), PRP-004 (GgmlModelManager + assets), PRP-005 (YAMNet/TFLite detección de alertas).
 
-**Pipeline nativo**: Oboe 48kHz → AudioProcessor → VolumeLimiter → WhisperBridge (decimación 3:1 en C++, thread dedicado, whisper_full por segmentos 10s) → texto via JNI polling → StateFlow → Compose. Librería única `libnaturasonic.so`. Modelos GGML gestionados por `GgmlModelManager` (assets con `noCompress("bin")` + fallback descarga HuggingFace).
+**Pipeline nativo**: Oboe 48kHz mono (onAudioReady) → AudioProcessor → VolumeLimiter → latestBuffer_ (frame actual) + yamnetBuffer_ (ring buffer 1s) + WhisperBridge::feedAudio(). WhisperBridge: decimación 3:1 C++, thread dedicado, whisper_full segmentos 10s → texto via JNI polling → StateFlow → Compose. YAMNet: yamnetBuffer_ → JNI → decimación 3:1 Kotlin → AudioClassifier (TFLite Task Audio) → DetectedAlert StateFlow → SoundAlertCard Compose (animada, auto-dismiss 5s). Librería única `libnaturasonic.so`. Modelos: GgmlModelManager (GGML assets) + YamnetModelManager (TFLite assets).
 
-**Siguiente paso**: PRP-005 — Detección de alertas con YAMNet/TFLite.
+**Siguiente paso**: Por definir — evaluar prioridades (UI de configuración de alertas, Auracast, Play Store).
 
 ---
 

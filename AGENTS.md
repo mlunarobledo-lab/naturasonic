@@ -261,6 +261,7 @@ Error -> Fix -> Documentar en PRP -> ¿Cumple algun criterio? -> Si: a AGENTS.md
 | PRP-002 | Integración whisper.cpp: motor de transcripción premium offline (FetchContent + JNI + Kotlin + UI) | COMPLETADO | 2026-08-10 |
 | PRP-003 | JNI Bridge unificado: Oboe↔whisper.cpp directo en C++, resampling nativo, thread dedicado | COMPLETADO | 2026-08-10 |
 | PRP-004 | Gestor GGML: extracción desde assets, ModelState sealed (4 estados), StateFlow→Compose | COMPLETADO | 2026-08-10 |
+| PRP-005 | Detección de alertas YAMNet/TFLite: Task Audio API, ring buffer C++, decimación Kotlin, UI animada | COMPLETADO | 2026-08-12 |
 
 ### Fases implementadas en PRP-001
 
@@ -275,25 +276,30 @@ Error -> Fix -> Documentar en PRP -> ¿Cumple algun criterio? -> Si: a AGENTS.md
 | 6 | Diseño UltraView, Nota de Salud y UX Accesible | COMPLETADO |
 | 7 | Monetización, Portabilidad, Legal y Play Store | COMPLETADO |
 
-### Pipeline nativo de audio (estado al commit dd9c514)
+### Pipeline nativo de audio (estado 2026-08-12)
 
 ```
 Oboe 48kHz mono (onAudioReady)
   ├─► AudioProcessor (EQ biquad + amplificación + noise gate)
   ├─► VolumeLimiter (85/70 dB)
-  ├─► latestBuffer_ (para consumidores Kotlin: Vosk, YAMNet)
+  ├─► latestBuffer_ (frame actual, para consumidores ligeros)
+  ├─► yamnetBuffer_ (ring buffer 1s, 48000 samples)
+  │     └─► JNI getYamnetAudioBuffer() ─► Kotlin decimación 3:1
+  │           └─► AudioClassifier (TFLite Task Audio, YAMNet, 7 clases)
+  │                 └─► DetectedAlert StateFlow ─► SoundAlertCard Compose
   └─► WhisperBridge::feedAudio() ─► buffer mutex ─► thread dedicado
         └─► resample48to16 (decimación 3:1, promediado anti-alias)
             └─► whisper_full() (segmentos 10s, 4 threads, lang=es)
                 └─► texto via JNI polling (150ms) ─► StateFlow ─► Compose
 
-Modelo GGML: GgmlModelManager verifica filesDir → extrae assets (noCompress bin) → Ready(path) → nativeInitWhisper
+Modelos: GgmlModelManager (GGML/whisper, assets noCompress bin)
+         YamnetModelManager (TFLite/YAMNet, assets noCompress tflite)
 Librería única: libnaturasonic.so (Oboe + PSAP + WhisperBridge + JNI)
 ```
 
 ### Siguiente paso acordado
 
-**PRP-005: Detección de alertas con YAMNet** — migrar YAMNet/TFLite al patrón WhisperBridge (C++ con thread dedicado) o mantener en Kotlin según peso de inferencia. Evaluar en la fase de mapeo.
+Por definir — evaluar prioridades (UI de configuración de alertas, Auracast, Play Store listing).
 
 ### Fuera de alcance (diferido)
 
