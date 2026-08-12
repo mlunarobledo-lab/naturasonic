@@ -16,11 +16,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.tensorflow.lite.Interpreter
-import java.io.File
 import java.io.FileInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,7 +32,8 @@ data class DetectedAlert(
 @Singleton
 class SoundAlertDetector @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val alertEventDao: AlertEventDao
+    private val alertEventDao: AlertEventDao,
+    private val yamnetModelManager: YamnetModelManager
 ) {
     private var interpreter: Interpreter? = null
     private val scope = CoroutineScope(Dispatchers.Default)
@@ -42,22 +41,16 @@ class SoundAlertDetector @Inject constructor(
     private val _latestAlert = MutableStateFlow<DetectedAlert?>(null)
     val latestAlert: StateFlow<DetectedAlert?> = _latestAlert.asStateFlow()
 
-    private val _isModelLoaded = MutableStateFlow(false)
-    val isModelLoaded: StateFlow<Boolean> = _isModelLoaded.asStateFlow()
-
     private val _isRunning = MutableStateFlow(false)
     val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
 
-    fun getModelFile(): File = File(context.filesDir, "models/yamnet/yamnet.tflite")
+    val modelState: StateFlow<YamnetModelState> = yamnetModelManager.state
 
-    fun isModelAvailable(): Boolean = getModelFile().exists()
+    suspend fun loadModel() {
+        val path = yamnetModelManager.ensureModel() ?: return
 
-    fun loadModel() {
         try {
-            val modelFile = getModelFile()
-            if (!modelFile.exists()) return
-
-            val fileInputStream = FileInputStream(modelFile)
+            val fileInputStream = FileInputStream(path)
             val fileChannel = fileInputStream.channel
             val modelBuffer = fileChannel.map(
                 FileChannel.MapMode.READ_ONLY, 0, fileChannel.size()
@@ -67,9 +60,8 @@ class SoundAlertDetector @Inject constructor(
             interpreter = Interpreter(modelBuffer, Interpreter.Options().apply {
                 setNumThreads(2)
             })
-            _isModelLoaded.value = true
-        } catch (_: Exception) {
-            _isModelLoaded.value = false
+        } catch (e: Exception) {
+            interpreter = null
         }
     }
 
@@ -84,18 +76,17 @@ class SoundAlertDetector @Inject constructor(
     fun processAudioBuffer(buffer: FloatArray) {
         if (!_isRunning.value || interpreter == null) return
 
-        val yamnetInputSize = 15600
-        if (buffer.size < yamnetInputSize) return
+        if (buffer.size < YAMNET_INPUT_SIZE) return
 
         try {
-            val inputBuffer = ByteBuffer.allocateDirect(yamnetInputSize * 4)
+            val inputBuffer = ByteBuffer.allocateDirect(YAMNET_INPUT_SIZE * 4)
                 .order(ByteOrder.nativeOrder())
-            for (i in 0 until yamnetInputSize) {
+            for (i in 0 until YAMNET_INPUT_SIZE) {
                 inputBuffer.putFloat(buffer[i])
             }
             inputBuffer.rewind()
 
-            val outputScores = Array(1) { FloatArray(521) }
+            val outputScores = Array(1) { FloatArray(YAMNET_OUTPUT_CLASSES) }
 
             interpreter?.run(inputBuffer, outputScores)
 
@@ -140,10 +131,11 @@ class SoundAlertDetector @Inject constructor(
         stop()
         interpreter?.close()
         interpreter = null
-        _isModelLoaded.value = false
     }
 
     companion object {
         private const val CONFIDENCE_THRESHOLD = 0.3f
+        private const val YAMNET_INPUT_SIZE = 15600
+        private const val YAMNET_OUTPUT_CLASSES = 521
     }
 }

@@ -94,7 +94,7 @@ El pipeline Oboe captura audio a 48kHz. `SoundAlertDetector` obtiene buffers ví
 - [x] `SoundAlertDetector.kt` ya existe con estructura base — verificado
 - [x] `AlertSoundClass` enum con 7 clases y yamnetIndices correctos — verificado
 - [x] `OboeAudioEngine.getAudioBuffer()` disponible para consumidores Kotlin — verificado
-- [ ] `tensorflow-lite-task-audio:0.4.4` es compatible con TFLite core 2.16.1 — a verificar en build
+- [x] `tensorflow-lite-task-audio:0.4.4` es compatible con TFLite core 2.16.1 — verificado (Fase 1, build exitoso)
 
 ---
 
@@ -124,13 +124,15 @@ El pipeline Oboe captura audio a 48kHz. `SoundAlertDetector` obtiene buffers ví
 
 > Solo FASES. Las subtareas se generan al ENTRAR a cada fase (bucle-agentico).
 
-### Fase 1: Configurar dependencias TFLite Task Audio
+### Fase 1: Configurar dependencias TFLite Task Audio ✅
 - **Objetivo**: TFLite Task Audio disponible en el proyecto, build limpio
 - **Validación**: `./gradlew clean assembleDebug` sin errores
+- **Completada**: 2026-08-12 (commit 493a4f3)
 
-### Fase 2: Gestión del modelo YAMNet
+### Fase 2: Gestión del modelo YAMNet ✅
 - **Objetivo**: Modelo YAMNet accesible desde assets/filesDir con gestor robusto (patrón GgmlModelManager)
-- **Validación**: El modelo se extrae y carga correctamente en tests
+- **Validación**: Build exitoso con YamnetModelManager inyectado vía Hilt en SoundAlertDetector
+- **Completada**: 2026-08-12
 
 ### Fase 3: Migrar SoundAlertDetector a Task Audio API
 - **Objetivo**: Reemplazar Interpreter raw por AudioClassifier de Task Audio (o mantener Interpreter si Task Audio no aporta valor para este caso)
