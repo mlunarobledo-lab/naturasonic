@@ -134,9 +134,10 @@ El pipeline Oboe captura audio a 48kHz. `SoundAlertDetector` obtiene buffers ví
 - **Validación**: Build exitoso con YamnetModelManager inyectado vía Hilt en SoundAlertDetector
 - **Completada**: 2026-08-12
 
-### Fase 3: Migrar SoundAlertDetector a Task Audio API
-- **Objetivo**: Reemplazar Interpreter raw por AudioClassifier de Task Audio (o mantener Interpreter si Task Audio no aporta valor para este caso)
-- **Validación**: Inferencia funcional con audio de prueba
+### Fase 3: Migrar SoundAlertDetector a Task Audio API ✅
+- **Objetivo**: Reemplazar Interpreter raw por AudioClassifier de Task Audio
+- **Validación**: Build exitoso con AudioClassifier inicializado vía createFromFileAndOptions, scoreThreshold=0.3, TensorAudio para input
+- **Completada**: 2026-08-12
 
 ### Fase 4: Integración con pipeline de audio
 - **Objetivo**: SoundAlertDetector recibe audio del pipeline Oboe, detecta alertas, vibra y persiste

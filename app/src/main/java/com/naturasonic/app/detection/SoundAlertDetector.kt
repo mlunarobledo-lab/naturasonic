@@ -1,10 +1,10 @@
 package com.naturasonic.app.detection
 
 import android.content.Context
+import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import android.os.Build
 import com.naturasonic.app.data.local.dao.AlertEventDao
 import com.naturasonic.app.data.local.entity.AlertEvent
 import com.naturasonic.app.data.local.entity.AlertSoundClass
@@ -15,11 +15,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import org.tensorflow.lite.Interpreter
-import java.io.FileInputStream
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.nio.channels.FileChannel
+import org.tensorflow.lite.support.audio.TensorAudio
+import org.tensorflow.lite.task.audio.classifier.AudioClassifier
+import org.tensorflow.lite.task.core.BaseOptions
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,7 +33,8 @@ class SoundAlertDetector @Inject constructor(
     private val alertEventDao: AlertEventDao,
     private val yamnetModelManager: YamnetModelManager
 ) {
-    private var interpreter: Interpreter? = null
+    private var classifier: AudioClassifier? = null
+    private var tensorAudio: TensorAudio? = null
     private val scope = CoroutineScope(Dispatchers.Default)
 
     private val _latestAlert = MutableStateFlow<DetectedAlert?>(null)
@@ -50,18 +49,21 @@ class SoundAlertDetector @Inject constructor(
         val path = yamnetModelManager.ensureModel() ?: return
 
         try {
-            val fileInputStream = FileInputStream(path)
-            val fileChannel = fileInputStream.channel
-            val modelBuffer = fileChannel.map(
-                FileChannel.MapMode.READ_ONLY, 0, fileChannel.size()
-            )
-            fileInputStream.close()
+            val options = AudioClassifier.AudioClassifierOptions.builder()
+                .setScoreThreshold(CONFIDENCE_THRESHOLD)
+                .setBaseOptions(
+                    BaseOptions.builder()
+                        .setNumThreads(2)
+                        .build()
+                )
+                .build()
 
-            interpreter = Interpreter(modelBuffer, Interpreter.Options().apply {
-                setNumThreads(2)
-            })
+            classifier = AudioClassifier.createFromFileAndOptions(context, path, options)
+            tensorAudio = classifier?.createInputTensorAudio()
         } catch (e: Exception) {
-            interpreter = null
+            classifier?.close()
+            classifier = null
+            tensorAudio = null
         }
     }
 
@@ -74,38 +76,31 @@ class SoundAlertDetector @Inject constructor(
     }
 
     fun processAudioBuffer(buffer: FloatArray) {
-        if (!_isRunning.value || interpreter == null) return
-
+        val audio = tensorAudio ?: return
+        val cls = classifier ?: return
+        if (!_isRunning.value) return
         if (buffer.size < YAMNET_INPUT_SIZE) return
 
         try {
-            val inputBuffer = ByteBuffer.allocateDirect(YAMNET_INPUT_SIZE * 4)
-                .order(ByteOrder.nativeOrder())
-            for (i in 0 until YAMNET_INPUT_SIZE) {
-                inputBuffer.putFloat(buffer[i])
-            }
-            inputBuffer.rewind()
+            audio.load(buffer.copyOfRange(0, YAMNET_INPUT_SIZE))
 
-            val outputScores = Array(1) { FloatArray(YAMNET_OUTPUT_CLASSES) }
+            val results = cls.classify(audio)
 
-            interpreter?.run(inputBuffer, outputScores)
-
-            val scores = outputScores[0]
-            for (alertClass in AlertSoundClass.entries) {
-                val score = scores.getOrNull(alertClass.yamnetIndex) ?: continue
-                if (score > CONFIDENCE_THRESHOLD) {
-                    val alert = DetectedAlert(alertClass, score)
+            for (classifications in results) {
+                for (category in classifications.categories) {
+                    val alertClass = AlertSoundClass.fromYamnetIndex(category.index) ?: continue
+                    val alert = DetectedAlert(alertClass, category.score)
                     _latestAlert.value = alert
                     vibrate()
                     scope.launch {
                         alertEventDao.insert(
                             AlertEvent(
                                 soundClass = alertClass.key,
-                                confidence = score
+                                confidence = category.score
                             )
                         )
                     }
-                    break
+                    return
                 }
             }
         } catch (_: Exception) { }
@@ -129,13 +124,13 @@ class SoundAlertDetector @Inject constructor(
 
     fun release() {
         stop()
-        interpreter?.close()
-        interpreter = null
+        classifier?.close()
+        classifier = null
+        tensorAudio = null
     }
 
     companion object {
         private const val CONFIDENCE_THRESHOLD = 0.3f
         private const val YAMNET_INPUT_SIZE = 15600
-        private const val YAMNET_OUTPUT_CLASSES = 521
     }
 }
