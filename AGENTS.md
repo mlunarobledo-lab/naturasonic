@@ -214,6 +214,11 @@ Error -> Fix -> Documentar en PRP -> ¿Cumple algun criterio? -> Si: a AGENTS.md
 | Este archivo (AGENTS.md) | Solo si cumple los 5 criterios del filtro discriminativo |
 | Auto memory de Claude | Automatico — tu no decides aqui, Claude lo hace |
 
+**2026-08-13: Double-buffer copy-modify-swap como patrón canónico para parámetros DSP thread-safe**
+- **Error**: `setEqBands` escribía gains y coeficientes biquad en arrays planos mientras `applyEqualizer` los leía en `onAudioReady` — data race con posibilidad de tear (coeficientes parciales). Los setters individuales (`setAmplification`, `setNoiseSuppressionEnabled`) eran `std::atomic` independientes, permitiendo estados intermedios inconsistentes entre parámetros.
+- **Fix**: `EqSnapshot` struct agrupa TODOS los parámetros DSP (gains, coeffs, bandCount, amplification, noiseSuppression). Doble buffer `eqSnapshots_[2]` con `std::atomic<int> activeEqIndex_`. Lectores (audio thread): un solo `load(memory_order_acquire)` → referencia const al snapshot completo. Escritores (JNI thread): `lock_guard<mutex>` → copian snapshot activo al inactivo → modifican → `store(writeIdx, memory_order_release)`. `applyProfile()` escribe directo sin copiar (todos los campos se sobreescriben). `BiquadState` permanece fuera del snapshot (estado continuo IIR, no se duplica).
+- **Aplicar en**: Cualquier futuro parámetro DSP que se controle desde Kotlin (nuevos filtros, compresores, limitadores dinámicos, crossover). Patrón: agregar el campo al `EqSnapshot`, crear setter copy-modify-swap, extender `applyProfile` si aplica. NUNCA usar `std::atomic` independientes para parámetros que deben ser coherentes entre sí.
+
 ---
 
 <!-- PRAXIS:PROJECT_CONTEXT_START -->
@@ -413,11 +418,19 @@ npx tsc --noEmit     # Verificar tipos
 
 **PRPs cerrados**: PRP-001 (scaffold Fases 0-7), PRP-002 (whisper.cpp FetchContent), PRP-003 (JNI bridge unificado), PRP-004 (GgmlModelManager + assets), PRP-005 (YAMNet/TFLite detección de alertas), PRP-006 (Room persistence — perfiles EQ + configuraciones).
 
-**Pipeline nativo**: Oboe 48kHz mono (onAudioReady) → AudioProcessor → VolumeLimiter → latestBuffer_ (frame actual) + yamnetBuffer_ (ring buffer 1s) + WhisperBridge::feedAudio(). WhisperBridge: decimación 3:1 C++, thread dedicado, whisper_full segmentos 10s → texto via JNI polling → StateFlow → Compose. YAMNet: yamnetBuffer_ → JNI → decimación 3:1 Kotlin → AudioClassifier (TFLite Task Audio) → DetectedAlert StateFlow → SoundAlertCard Compose (animada, auto-dismiss 5s). Librería única `libnaturasonic.so`. Modelos: GgmlModelManager (GGML assets) + YamnetModelManager (TFLite assets).
+**PRP-007 EN PROGRESO (Fases 1-3 COMPLETADAS, Fase 4 PENDIENTE)**: Pipeline Avanzado de Modos de Escucha — Enlace Room ↔ Oboe. Implementa el flujo reactivo completo: Room → Flow → debounce → JNI atómico → AudioProcessor C++ con double-buffer.
 
-**Persistencia**: Room database v1 (`naturasonic.db`) con 3 entities (AudioProfile, TranscriptionEntry, AlertEvent). AudioProfileRepository con CRUD + seed automático de 4 perfiles default (uno por AudioMode). Auto-restauración del perfil activo en AudioService.startAudio(). AudioModeManager lee perfiles de Room (fallback a presets hardcodeados). UserPreferences (DataStore) para settings simples (modo actual, volumen, selectedProfileId, alertas).
+**Fase 1 (COMPLETADA)**: Thread-safety con double-buffer de coeficientes biquad. `EqSnapshot` struct agrupa gains + coeffs + bandCount. `std::atomic<int> activeEqIndex_` con `memory_order_acquire/release`. Writer mutex solo en JNI thread, nunca en audio callback. `BiquadState` permanece único (estado continuo IIR).
 
-**Siguiente paso**: Por definir — evaluar prioridades (UI de gestión de perfiles, Auracast, Play Store).
+**Fase 2 (COMPLETADA)**: Observación reactiva Room → Engine. `restoreActiveProfile()` one-shot reemplazado por `startProfileObserver()` en AudioService. `combine(selectedProfileId, currentMode).debounce(30).collect` propaga cambios de perfil/modo al engine automáticamente. Sin feedback loop: observer llama `modeManager.applyProfile` directamente (no `applyMode`). Job cancelado en `stopAudio()`.
+
+**Fase 3 (COMPLETADA)**: Operación atómica `nativeApplyProfile`. `EqSnapshot` expandido con `float amplification` + `bool noiseSuppression`. `process()` lee TODO desde un solo snapshot con un solo `memory_order_acquire`. Todos los setters (`setAmplification`, `setEqBands`, `setNoiseSuppressionEnabled`) usan copy-modify-swap: copian snapshot activo → modifican campo → swap atómico. Nuevo `applyProfile()` en cadena completa: AudioProcessor → NaturaSonicEngine → JNI (`nativeApplyProfile`) → OboeAudioEngine.kt → AudioModeManager.kt. AEC separado (Android AudioEffect, no C++). BUILD SUCCESSFUL 3 ABIs (arm64-v8a, armeabi-v7a, x86_64).
+
+**Fase 4 (PENDIENTE — SIGUIENTE PASO INMEDIATO)**: Validación end-to-end. `./gradlew lint`, revisión de thread-safety (ningún acceso no-protegido a gains/coeffs), criterios de éxito del PRP, cierre del hito.
+
+**Pipeline nativo**: Oboe 48kHz mono (onAudioReady) → AudioProcessor (double-buffer EqSnapshot con amplification + NS + EQ atómicos) → VolumeLimiter → latestBuffer_ (frame actual) + yamnetBuffer_ (ring buffer 1s) + WhisperBridge::feedAudio(). WhisperBridge: decimación 3:1 C++, thread dedicado, whisper_full segmentos 10s → texto via JNI polling → StateFlow → Compose. YAMNet: yamnetBuffer_ → JNI → decimación 3:1 Kotlin → AudioClassifier (TFLite Task Audio) → DetectedAlert StateFlow → SoundAlertCard Compose (animada, auto-dismiss 5s). Librería única `libnaturasonic.so`. Modelos: GgmlModelManager (GGML assets) + YamnetModelManager (TFLite assets).
+
+**Persistencia**: Room database v1 (`naturasonic.db`) con 3 entities (AudioProfile, TranscriptionEntry, AlertEvent). AudioProfileRepository con CRUD + seed automático de 4 perfiles default (uno por AudioMode). Observación reactiva `combine(selectedProfileId, currentMode).debounce(30)` en AudioService reemplaza one-shot restore. AudioModeManager usa `audioEngine.applyProfile()` atómico (1 JNI call en vez de 3). UserPreferences (DataStore) para settings simples (modo actual, volumen, selectedProfileId, alertas).
 
 ---
 
