@@ -409,13 +409,15 @@ npx tsc --noEmit     # Verificar tipos
 
 ---
 
-## Checkpoint de estado (2026-08-12)
+## Checkpoint de estado (2026-08-13)
 
-**PRPs cerrados**: PRP-001 (scaffold Fases 0-7), PRP-002 (whisper.cpp FetchContent), PRP-003 (JNI bridge unificado), PRP-004 (GgmlModelManager + assets), PRP-005 (YAMNet/TFLite detección de alertas).
+**PRPs cerrados**: PRP-001 (scaffold Fases 0-7), PRP-002 (whisper.cpp FetchContent), PRP-003 (JNI bridge unificado), PRP-004 (GgmlModelManager + assets), PRP-005 (YAMNet/TFLite detección de alertas), PRP-006 (Room persistence — perfiles EQ + configuraciones).
 
 **Pipeline nativo**: Oboe 48kHz mono (onAudioReady) → AudioProcessor → VolumeLimiter → latestBuffer_ (frame actual) + yamnetBuffer_ (ring buffer 1s) + WhisperBridge::feedAudio(). WhisperBridge: decimación 3:1 C++, thread dedicado, whisper_full segmentos 10s → texto via JNI polling → StateFlow → Compose. YAMNet: yamnetBuffer_ → JNI → decimación 3:1 Kotlin → AudioClassifier (TFLite Task Audio) → DetectedAlert StateFlow → SoundAlertCard Compose (animada, auto-dismiss 5s). Librería única `libnaturasonic.so`. Modelos: GgmlModelManager (GGML assets) + YamnetModelManager (TFLite assets).
 
-**Siguiente paso**: Por definir — evaluar prioridades (UI de configuración de alertas, Auracast, Play Store).
+**Persistencia**: Room database v1 (`naturasonic.db`) con 3 entities (AudioProfile, TranscriptionEntry, AlertEvent). AudioProfileRepository con CRUD + seed automático de 4 perfiles default (uno por AudioMode). Auto-restauración del perfil activo en AudioService.startAudio(). AudioModeManager lee perfiles de Room (fallback a presets hardcodeados). UserPreferences (DataStore) para settings simples (modo actual, volumen, selectedProfileId, alertas).
+
+**Siguiente paso**: Por definir — evaluar prioridades (UI de gestión de perfiles, Auracast, Play Store).
 
 ---
 

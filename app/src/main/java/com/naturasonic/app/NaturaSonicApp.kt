@@ -3,14 +3,24 @@ package com.naturasonic.app
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import com.naturasonic.app.data.repository.AudioProfileRepository
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @HiltAndroidApp
 class NaturaSonicApp : Application() {
 
+    @Inject lateinit var audioProfileRepository: AudioProfileRepository
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
+        CoroutineScope(Dispatchers.IO).launch {
+            audioProfileRepository.ensureDefaultProfiles()
+        }
     }
 
     private fun createNotificationChannels() {

@@ -52,7 +52,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.naturasonic.app.R
 import com.naturasonic.app.billing.BillingManager
-import com.naturasonic.app.data.local.entity.AudioMode
 
 private val EQ_LABELS = listOf("125", "250", "500", "1K", "2K", "4K", "6K", "8K", "10K", "12K")
 
@@ -216,7 +215,7 @@ fun SettingsScreen(
                 TextButton(
                     onClick = {
                         if (profileName.isNotBlank()) {
-                            viewModel.saveProfile(profileName, AudioMode.CONVERSATION)
+                            viewModel.saveProfile(profileName)
                             showSaveProfile = false
                         }
                     }

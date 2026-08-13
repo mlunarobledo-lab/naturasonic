@@ -217,94 +217,8 @@ Error -> Fix -> Documentar en PRP -> ¿Cumple algun criterio? -> Si: a AGENTS.md
 ---
 
 <!-- PRAXIS:PROJECT_CONTEXT_START -->
-## Contexto del Proyecto — NaturaSonic
-
-**Tipo**: App Android nativa (Kotlin 2.0 + Jetpack Compose + C++17/NDK)
-**Compatibilidad Praxis**: REPLACE (no aplica Trust Stack web)
-**Repositorio**: `mlunarobledo-lab/naturasonic` (GitHub)
-**Branch principal**: `main`
-
-### Stack real del proyecto
-
-| Capa | Tecnología |
-|------|------------|
-| Lenguaje | Kotlin 2.0.21 / C++17 |
-| UI | Jetpack Compose + Material 3 |
-| Audio nativo | Oboe 1.9 (C++ vía JNI, FetchContent) |
-| DSP/PSAP | Implementación directa: biquad EQ 10 bandas, noise gate, volume limiter |
-| Transcripción | Vosk 0.3.45+ (offline, streaming, reflection API) |
-| Detección sonora | TensorFlow Lite + YAMNet (7 clases de alerta) |
-| Bluetooth | LE Audio (API 33+), ASHA (API 29+), Classic |
-| DI | Hilt 2.52 |
-| BD local | Room 2.6.1 |
-| Preferencias | DataStore 1.1.1 |
-| Navegación | Navigation Compose 2.8.5 |
-| Estado | ViewModel + StateFlow |
-| Billing | Google Play Billing Library 7.1.1 |
-| Backup | Android Auto Backup (Room DB + DataStore, excluye ML models) |
-| Build | Gradle 8.7.3 + CMake 3.22.1 + NDK (arm64-v8a, armeabi-v7a, x86_64) |
-
-### Comandos de validación
-
-```bash
-./gradlew assembleDebug        # Build debug (equivale a npm run build)
-./gradlew assembleRelease      # Build release (requiere signing config)
-./gradlew lint                 # Lint (equivale a npm run lint)
-./gradlew connectedAndroidTest # Tests instrumentados en dispositivo/emulador
-```
-
-### Hitos cerrados
-
-| PRP | Descripción | Estado | Fecha cierre |
-|-----|-------------|--------|--------------|
-| PRP-001 | Scaffold completo: Fases 0-7 (audio pipeline, BT, PSAP, transcripción, detección, UI, billing) | COMPLETADO | 2026-08-03 |
-| PRP-002 | Integración whisper.cpp: motor de transcripción premium offline (FetchContent + JNI + Kotlin + UI) | COMPLETADO | 2026-08-10 |
-| PRP-003 | JNI Bridge unificado: Oboe↔whisper.cpp directo en C++, resampling nativo, thread dedicado | COMPLETADO | 2026-08-10 |
-| PRP-004 | Gestor GGML: extracción desde assets, ModelState sealed (4 estados), StateFlow→Compose | COMPLETADO | 2026-08-10 |
-| PRP-005 | Detección de alertas YAMNet/TFLite: Task Audio API, ring buffer C++, decimación Kotlin, UI animada | COMPLETADO | 2026-08-12 |
-
-### Fases implementadas en PRP-001
-
-| Fase | Nombre | Estado |
-|------|--------|--------|
-| 0 | Scaffold de Stack (REPLACE) | COMPLETADO |
-| 1 | Pipeline de Audio con Oboe | COMPLETADO |
-| 2 | Conectividad Bluetooth (LE Audio + ASHA) | COMPLETADO |
-| 3 | Motor PSAP y Procesamiento de Señal | COMPLETADO |
-| 4 | Transcripción Offline y Detección de Alertas | COMPLETADO |
-| 5 | Micrófono Remoto y Modos de Uso | COMPLETADO |
-| 6 | Diseño UltraView, Nota de Salud y UX Accesible | COMPLETADO |
-| 7 | Monetización, Portabilidad, Legal y Play Store | COMPLETADO |
-
-### Pipeline nativo de audio (estado 2026-08-12)
-
-```
-Oboe 48kHz mono (onAudioReady)
-  ├─► AudioProcessor (EQ biquad + amplificación + noise gate)
-  ├─► VolumeLimiter (85/70 dB)
-  ├─► latestBuffer_ (frame actual, para consumidores ligeros)
-  ├─► yamnetBuffer_ (ring buffer 1s, 48000 samples)
-  │     └─► JNI getYamnetAudioBuffer() ─► Kotlin decimación 3:1
-  │           └─► AudioClassifier (TFLite Task Audio, YAMNet, 7 clases)
-  │                 └─► DetectedAlert StateFlow ─► SoundAlertCard Compose
-  └─► WhisperBridge::feedAudio() ─► buffer mutex ─► thread dedicado
-        └─► resample48to16 (decimación 3:1, promediado anti-alias)
-            └─► whisper_full() (segmentos 10s, 4 threads, lang=es)
-                └─► texto via JNI polling (150ms) ─► StateFlow ─► Compose
-
-Modelos: GgmlModelManager (GGML/whisper, assets noCompress bin)
-         YamnetModelManager (TFLite/YAMNet, assets noCompress tflite)
-Librería única: libnaturasonic.so (Oboe + PSAP + WhisperBridge + JNI)
-```
-
-### Siguiente paso acordado
-
-Por definir — evaluar prioridades (UI de configuración de alertas, Auracast, Play Store listing).
-
-### Fuera de alcance (diferido)
-
-- Auracast (broadcast LE Audio) — requiere Android 16+ y hardware con baja penetración
-- Play Store listing, Data Safety section y signing config release — requieren Google Play Console
+<!-- La skill `praxis-init` llena esta seccion al analizar un proyecto existente.
+     En un proyecto nuevo arrancado por Praxis queda vacia (el scaffold ya describe el proyecto). -->
 <!-- PRAXIS:PROJECT_CONTEXT_END -->
 
 ---
@@ -405,23 +319,24 @@ Conectado via URL. Gestiona deployments, dominios, variables de entorno y logs d
 
 Antes de dar por cerrada cualquier feature o PRP:
 
-- [ ] Build exitoso (`./gradlew assembleDebug` sin errores)
-- [ ] Lint limpio (`./gradlew lint`)
-- [ ] Compilación nativa C++ exitosa en las 3 arquitecturas (arm64-v8a, armeabi-v7a, x86_64)
+- [ ] Tipos verificados (`npx tsc --noEmit` sin errores)
+- [ ] Lint limpio (`npm run lint`)
+- [ ] Validación visual vía Playwright (screenshot de flujo feliz + flujo de error)
+- [ ] RLS activo en todas las tablas nuevas
+- [ ] Entrada de usuario validada con Zod
 - [ ] Registro de aprendizajes actualizado si hubo errores
 - [ ] Actualización de documentación relevante en el proyecto (README.md/AGENTS.md)
-- [ ] Validación visual en dispositivo/emulador cuando aplique
+- [ ] Build de producción exitoso (`npm run build`)
 
 ---
 
-## Comandos de build
+## Comandos npm
 
 ```bash
-./gradlew assembleDebug        # Build debug
-./gradlew assembleRelease      # Build release (requiere signing config)
-./gradlew lint                 # Lint Android
-./gradlew connectedAndroidTest # Tests instrumentados
-./gradlew clean                # Limpiar build cache
+npm run dev          # Servidor (Turbopack, auto-detecta puerto)
+npm run build        # Build produccion
+npm run lint         # ESLint
+npx tsc --noEmit     # Verificar tipos
 ```
 
 ---
@@ -476,6 +391,33 @@ Antes de dar por cerrada cualquier feature o PRP:
 - **Error**: El AGENTS.md original describe un Trust Stack web (Next.js, Tailwind, Supabase) y comandos npm. NaturaSonic es un proyecto Android nativo con Kotlin/Gradle/NDK.
 - **Fix**: Los comandos de validación para este proyecto son: `./gradlew assembleDebug` (build), `./gradlew lint` (lint), `./gradlew connectedAndroidTest` (tests instrumentados). No aplican `npm run dev/build/lint` ni `npx tsc --noEmit`.
 - **Aplicar en**: Todo desarrollo futuro en este proyecto. Los criterios de entrega de AGENTS.md deben leerse sustituyendo los comandos npm por sus equivalentes Gradle.
+
+**2026-08-10: Pipeline Oboe opera a 48kHz — motores externos requieren resampling**
+- **Error**: whisper.cpp requiere audio PCM float32 a 16kHz mono. El pipeline Oboe captura a 48kHz.
+- **Fix**: Resampling por decimación 3:1 con promediado anti-aliasing. Desde PRP-003 el resampling vive en C++ nativo (`WhisperBridge::resample48to16`), no en Kotlin. El pipeline nativo NO se toca — cada consumidor resamplea en su propia capa.
+- **Aplicar en**: Cualquier motor futuro que consuma audio del pipeline Oboe con sample rate diferente a 48kHz (ej: otro modelo de ML, codec específico).
+
+**2026-08-10: Consumidores pesados de audio deben integrarse a nivel C++ con thread dedicado**
+- **Error**: En PRP-002, el audio viajaba C++→JNI→Kotlin (resampling)→JNI→C++ (whisper) — dos cruces JNI por frame de audio, GC pressure por arrays Kotlin, latencia innecesaria.
+- **Fix**: `WhisperBridge` C++ recibe audio directamente desde `onAudioReady` de Oboe, resamplea en C++, y procesa en un thread dedicado. El audio nunca cruza JNI hasta convertirse en texto. Target `whisper_jni` eliminado — todo unificado en `libnaturasonic.so`.
+- **Aplicar en**: Cualquier futuro consumidor de audio que haga procesamiento pesado (YAMNet podría migrarse al mismo patrón, modelos ML futuros, análisis espectral). La clave: buffer mutex-protegido alimentado desde el callback de audio + thread dedicado de procesamiento.
+
+**2026-08-12: Ring buffer C++ para consumidores Kotlin que necesitan ventana de audio acumulada**
+- **Error**: `latestBuffer_` solo contiene el último frame (~256 muestras, ~5ms). Consumidores ML como YAMNet necesitan ~1s de audio continuo (48000 muestras). Polling rápido desde Kotlin pierde >90% del audio entre lecturas.
+- **Fix**: Ring buffer dedicado (`yamnetBuffer_`, 48000 float, 1s a 48kHz) alimentado desde `onAudioReady` con mutex propio. JNI getter devuelve el buffer completo en orden cronológico. La decimación 3:1 se hace en Kotlin (consumidor ligero) no en C++.
+- **Aplicar en**: Cualquier futuro consumidor Kotlin que necesite una ventana de audio mayor que un frame de callback (clasificadores ML, análisis espectral, grabación). Patrón: ring buffer C++ con mutex dedicado + JNI getter + resampling en la capa del consumidor.
+
+---
+
+## Checkpoint de estado (2026-08-13)
+
+**PRPs cerrados**: PRP-001 (scaffold Fases 0-7), PRP-002 (whisper.cpp FetchContent), PRP-003 (JNI bridge unificado), PRP-004 (GgmlModelManager + assets), PRP-005 (YAMNet/TFLite detección de alertas), PRP-006 (Room persistence — perfiles EQ + configuraciones).
+
+**Pipeline nativo**: Oboe 48kHz mono (onAudioReady) → AudioProcessor → VolumeLimiter → latestBuffer_ (frame actual) + yamnetBuffer_ (ring buffer 1s) + WhisperBridge::feedAudio(). WhisperBridge: decimación 3:1 C++, thread dedicado, whisper_full segmentos 10s → texto via JNI polling → StateFlow → Compose. YAMNet: yamnetBuffer_ → JNI → decimación 3:1 Kotlin → AudioClassifier (TFLite Task Audio) → DetectedAlert StateFlow → SoundAlertCard Compose (animada, auto-dismiss 5s). Librería única `libnaturasonic.so`. Modelos: GgmlModelManager (GGML assets) + YamnetModelManager (TFLite assets).
+
+**Persistencia**: Room database v1 (`naturasonic.db`) con 3 entities (AudioProfile, TranscriptionEntry, AlertEvent). AudioProfileRepository con CRUD + seed automático de 4 perfiles default (uno por AudioMode). Auto-restauración del perfil activo en AudioService.startAudio(). AudioModeManager lee perfiles de Room (fallback a presets hardcodeados). UserPreferences (DataStore) para settings simples (modo actual, volumen, selectedProfileId, alertas).
+
+**Siguiente paso**: Por definir — evaluar prioridades (UI de gestión de perfiles, Auracast, Play Store).
 
 ---
 

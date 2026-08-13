@@ -1,9 +1,12 @@
 package com.naturasonic.app.audio
 
 import com.naturasonic.app.data.local.entity.AudioMode
+import com.naturasonic.app.data.local.entity.AudioProfile
 import com.naturasonic.app.data.preferences.UserPreferences
+import com.naturasonic.app.data.repository.AudioProfileRepository
 import com.naturasonic.app.detection.SoundAlertDetector
 import kotlinx.coroutines.flow.first
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -39,7 +42,8 @@ class AudioModeManager @Inject constructor(
     private val audioEngine: OboeAudioEngine,
     private val audioSessionManager: AudioSessionManager,
     private val alertDetector: SoundAlertDetector,
-    private val userPreferences: UserPreferences
+    private val userPreferences: UserPreferences,
+    private val audioProfileRepository: AudioProfileRepository
 ) {
     fun getModeConfig(mode: AudioMode): ModeConfig = when (mode) {
         AudioMode.CONVERSATION -> ModeConfig(
@@ -72,23 +76,37 @@ class AudioModeManager @Inject constructor(
         )
     }
 
-    fun applyMode(mode: AudioMode, audioSessionId: Int) {
-        val config = getModeConfig(mode)
-        audioEngine.setAmplification(config.amplification)
-        audioEngine.setEqBands(config.eqPreset)
-        audioEngine.setNoiseSuppressionEnabled(config.nsEnabled)
-
-        if (config.aecEnabled) {
-            audioSessionManager.setAecEnabled(audioSessionId, true)
+    suspend fun applyMode(mode: AudioMode, audioSessionId: Int) {
+        val profile = audioProfileRepository.getDefaultProfile(mode)
+        if (profile != null) {
+            applyProfile(profile, audioSessionId)
+            userPreferences.setSelectedProfileId(profile.id)
         } else {
-            audioSessionManager.setAecEnabled(audioSessionId, false)
+            val config = getModeConfig(mode)
+            audioEngine.setAmplification(config.amplification)
+            audioEngine.setEqBands(config.eqPreset)
+            audioEngine.setNoiseSuppressionEnabled(config.nsEnabled)
+            audioSessionManager.setAecEnabled(audioSessionId, config.aecEnabled)
         }
 
+        val config = getModeConfig(mode)
         if (config.alertDetectionEnabled) {
             alertDetector.start()
         } else {
             alertDetector.stop()
         }
+    }
+
+    fun applyProfile(profile: AudioProfile, audioSessionId: Int) {
+        val bands = try {
+            Json.decodeFromString<List<Float>>(profile.eqBands).toFloatArray()
+        } catch (_: Exception) {
+            FloatArray(10) { 0f }
+        }
+        audioEngine.setEqBands(bands)
+        audioEngine.setAmplification(profile.amplificationLevel)
+        audioEngine.setNoiseSuppressionEnabled(profile.noiseSuppressionEnabled)
+        audioSessionManager.setAecEnabled(audioSessionId, profile.aecEnabled)
     }
 
     suspend fun getCurrentMode(): AudioMode {

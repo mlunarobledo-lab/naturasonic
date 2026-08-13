@@ -35,4 +35,7 @@ interface AudioProfileDao {
 
     @Query("UPDATE audio_profiles SET isDefault = 0 WHERE mode = :mode")
     suspend fun clearDefaultForMode(mode: String)
+
+    @Query("SELECT COUNT(*) FROM audio_profiles")
+    suspend fun count(): Int
 }

@@ -2,17 +2,19 @@ package com.naturasonic.app.ui.screens.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.naturasonic.app.audio.AudioModeManager
 import com.naturasonic.app.audio.OboeAudioEngine
 import com.naturasonic.app.billing.BillingManager
-import com.naturasonic.app.data.local.dao.AudioProfileDao
 import com.naturasonic.app.data.local.entity.AudioMode
 import com.naturasonic.app.data.local.entity.AudioProfile
 import com.naturasonic.app.data.preferences.UserPreferences
+import com.naturasonic.app.data.repository.AudioProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
@@ -23,7 +25,8 @@ data class SettingsUiState(
     val profiles: List<AudioProfile> = emptyList(),
     val eqBands: FloatArray = FloatArray(10) { 0f },
     val alertDetectionEnabled: Boolean = true,
-    val isPremium: Boolean = false
+    val isPremium: Boolean = false,
+    val currentMode: AudioMode = AudioMode.CONVERSATION
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -31,7 +34,8 @@ data class SettingsUiState(
         return profiles == other.profiles &&
                eqBands.contentEquals(other.eqBands) &&
                alertDetectionEnabled == other.alertDetectionEnabled &&
-               isPremium == other.isPremium
+               isPremium == other.isPremium &&
+               currentMode == other.currentMode
     }
 
     override fun hashCode(): Int {
@@ -39,6 +43,7 @@ data class SettingsUiState(
         result = 31 * result + eqBands.contentHashCode()
         result = 31 * result + alertDetectionEnabled.hashCode()
         result = 31 * result + isPremium.hashCode()
+        result = 31 * result + currentMode.hashCode()
         return result
     }
 }
@@ -46,7 +51,8 @@ data class SettingsUiState(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val audioEngine: OboeAudioEngine,
-    private val audioProfileDao: AudioProfileDao,
+    private val audioProfileRepository: AudioProfileRepository,
+    private val modeManager: AudioModeManager,
     private val billingManager: BillingManager,
     private val userPreferences: UserPreferences
 ) : ViewModel() {
@@ -54,18 +60,43 @@ class SettingsViewModel @Inject constructor(
     private val _eqBands = MutableStateFlow(FloatArray(10) { 0f })
 
     val uiState: StateFlow<SettingsUiState> = combine(
-        audioProfileDao.getAllProfiles(),
+        audioProfileRepository.getAllProfiles(),
         _eqBands,
         userPreferences.alertDetectionEnabled,
-        billingManager.isPremium
-    ) { profiles, eqBands, alertEnabled, isPremium ->
+        billingManager.isPremium,
+        userPreferences.currentMode
+    ) { profiles, eqBands, alertEnabled, isPremium, modeKey ->
         SettingsUiState(
             profiles = profiles,
             eqBands = eqBands,
             alertDetectionEnabled = alertEnabled,
-            isPremium = isPremium
+            isPremium = isPremium,
+            currentMode = AudioMode.fromKey(modeKey)
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsUiState())
+
+    init {
+        viewModelScope.launch {
+            val selectedId = userPreferences.selectedProfileId.first()
+            val modeKey = userPreferences.currentMode.first()
+            val mode = AudioMode.fromKey(modeKey)
+
+            val profile = if (selectedId > 0) {
+                audioProfileRepository.getById(selectedId)
+            } else {
+                null
+            } ?: audioProfileRepository.getDefaultProfile(mode)
+
+            if (profile != null) {
+                val bands = try {
+                    Json.decodeFromString<List<Float>>(profile.eqBands).toFloatArray()
+                } catch (_: Exception) {
+                    FloatArray(10) { 0f }
+                }
+                _eqBands.value = bands
+            }
+        }
+    }
 
     fun setEqBand(index: Int, value: Float) {
         val bands = _eqBands.value.copyOf()
@@ -80,35 +111,49 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun saveProfile(name: String, mode: AudioMode) {
+    fun saveProfile(name: String) {
         viewModelScope.launch {
+            val modeKey = userPreferences.currentMode.first()
             val bandsJson = Json.encodeToString(_eqBands.value.toList())
-            audioProfileDao.insert(
+            val profileId = audioProfileRepository.save(
                 AudioProfile(
                     name = name,
-                    mode = mode.key,
+                    mode = modeKey,
                     eqBands = bandsJson,
-                    amplificationLevel = 0.5f,
+                    amplificationLevel = audioEngine.nativeHandle.let { 0.5f },
                     noiseSuppressionEnabled = true,
                     aecEnabled = true
                 )
             )
+            userPreferences.setSelectedProfileId(profileId)
         }
     }
 
     fun loadProfile(profile: AudioProfile) {
-        try {
-            val bands = Json.decodeFromString<List<Float>>(profile.eqBands).toFloatArray()
+        viewModelScope.launch {
+            val bands = try {
+                Json.decodeFromString<List<Float>>(profile.eqBands).toFloatArray()
+            } catch (_: Exception) {
+                FloatArray(10) { 0f }
+            }
             _eqBands.value = bands
-            audioEngine.setEqBands(bands)
-            audioEngine.setAmplification(profile.amplificationLevel)
-            audioEngine.setNoiseSuppressionEnabled(profile.noiseSuppressionEnabled)
-        } catch (_: Exception) { }
+            modeManager.applyProfile(profile, 0)
+            userPreferences.setSelectedProfileId(profile.id)
+        }
     }
 
     fun deleteProfile(profile: AudioProfile) {
         viewModelScope.launch {
-            audioProfileDao.delete(profile)
+            val selectedId = userPreferences.selectedProfileId.first()
+            audioProfileRepository.delete(profile)
+            if (profile.id == selectedId) {
+                val modeKey = userPreferences.currentMode.first()
+                val mode = AudioMode.fromKey(modeKey)
+                val fallback = audioProfileRepository.getDefaultProfile(mode)
+                if (fallback != null) {
+                    loadProfile(fallback)
+                }
+            }
         }
     }
 }

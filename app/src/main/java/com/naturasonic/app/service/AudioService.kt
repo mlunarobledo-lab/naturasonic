@@ -12,9 +12,13 @@ import androidx.core.app.NotificationCompat
 import com.naturasonic.app.MainActivity
 import com.naturasonic.app.NaturaSonicApp
 import com.naturasonic.app.R
+import com.naturasonic.app.audio.AudioModeManager
 import com.naturasonic.app.audio.AudioSessionManager
 import com.naturasonic.app.audio.OboeAudioEngine
 import com.naturasonic.app.audio.VolumeProtection
+import com.naturasonic.app.data.local.entity.AudioMode
+import com.naturasonic.app.data.preferences.UserPreferences
+import com.naturasonic.app.data.repository.AudioProfileRepository
 import com.naturasonic.app.detection.SoundAlertDetector
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -22,6 +26,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -33,6 +38,9 @@ class AudioService : Service() {
     @Inject lateinit var audioSessionManager: AudioSessionManager
     @Inject lateinit var volumeProtection: VolumeProtection
     @Inject lateinit var alertDetector: SoundAlertDetector
+    @Inject lateinit var audioProfileRepository: AudioProfileRepository
+    @Inject lateinit var userPreferences: UserPreferences
+    @Inject lateinit var modeManager: AudioModeManager
 
     private val binder = AudioBinder()
     private val serviceScope = CoroutineScope(Dispatchers.Default + Job())
@@ -61,6 +69,27 @@ class AudioService : Service() {
             volumeProtection.onListeningStarted()
             startVolumeProtectionTick()
             startDetectionLoop()
+            restoreActiveProfile()
+        }
+    }
+
+    private fun restoreActiveProfile() {
+        serviceScope.launch {
+            val modeKey = userPreferences.currentMode.first()
+            val mode = AudioMode.fromKey(modeKey)
+            val selectedId = userPreferences.selectedProfileId.first()
+
+            val profile = if (selectedId > 0) {
+                audioProfileRepository.getById(selectedId)
+            } else {
+                null
+            } ?: audioProfileRepository.getDefaultProfile(mode)
+
+            if (profile != null) {
+                modeManager.applyProfile(profile, 0)
+            } else {
+                modeManager.applyMode(mode, 0)
+            }
         }
     }
 
