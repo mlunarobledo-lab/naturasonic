@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vector>
 #include <atomic>
 #include <cmath>
+#include <mutex>
 
 class AudioProcessor {
 public:
@@ -23,8 +23,6 @@ private:
     std::atomic<bool> noiseSuppressionEnabled_{false};
 
     static constexpr int kMaxEqBands = 10;
-    float eqGains_[kMaxEqBands] = {};
-    int eqBandCount_ = 5;
 
     struct BiquadState {
         float x1 = 0, x2 = 0;
@@ -36,11 +34,20 @@ private:
         float a1 = 0, a2 = 0;
     };
 
-    BiquadState eqStates_[kMaxEqBands] = {};
-    BiquadCoeffs eqCoeffs_[kMaxEqBands] = {};
+    struct EqSnapshot {
+        float gains[kMaxEqBands] = {};
+        BiquadCoeffs coeffs[kMaxEqBands] = {};
+        int bandCount = 5;
+    };
 
-    void computeEqCoefficients();
-    float processBiquad(float input, BiquadCoeffs& c, BiquadState& s);
+    EqSnapshot eqSnapshots_[2];
+    std::atomic<int> activeEqIndex_{0};
+    std::mutex eqWriteMutex_;
+
+    BiquadState eqStates_[kMaxEqBands] = {};
+
+    void computeEqCoefficients(EqSnapshot& snap);
+    float processBiquad(float input, const BiquadCoeffs& c, BiquadState& s);
 
     static constexpr float kNoiseGateThreshold = 0.002f;
     static constexpr float kNoiseGateRelease = 0.995f;

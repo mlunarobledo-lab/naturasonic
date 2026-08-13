@@ -5,10 +5,9 @@
 constexpr float AudioProcessor::kCenterFreqs[];
 
 AudioProcessor::AudioProcessor() {
-    for (int i = 0; i < kMaxEqBands; i++) {
-        eqGains_[i] = 0.0f;
+    for (int buf = 0; buf < 2; buf++) {
+        computeEqCoefficients(eqSnapshots_[buf]);
     }
-    computeEqCoefficients();
 }
 
 void AudioProcessor::process(float* buffer, int numFrames) {
@@ -26,11 +25,17 @@ void AudioProcessor::setAmplification(float level) {
 }
 
 void AudioProcessor::setEqBands(const float* bands, int count) {
-    eqBandCount_ = std::min(count, kMaxEqBands);
-    for (int i = 0; i < eqBandCount_; i++) {
-        eqGains_[i] = std::clamp(bands[i], -12.0f, 12.0f);
+    std::lock_guard<std::mutex> lock(eqWriteMutex_);
+    int writeIdx = 1 - activeEqIndex_.load(std::memory_order_acquire);
+
+    EqSnapshot& snap = eqSnapshots_[writeIdx];
+    snap.bandCount = std::min(count, kMaxEqBands);
+    for (int i = 0; i < snap.bandCount; i++) {
+        snap.gains[i] = std::clamp(bands[i], -12.0f, 12.0f);
     }
-    computeEqCoefficients();
+    computeEqCoefficients(snap);
+
+    activeEqIndex_.store(writeIdx, std::memory_order_release);
 }
 
 void AudioProcessor::setNoiseSuppressionEnabled(bool enabled) {
@@ -47,11 +52,14 @@ void AudioProcessor::applyAmplification(float* buffer, int numFrames) {
 }
 
 void AudioProcessor::applyEqualizer(float* buffer, int numFrames) {
-    for (int band = 0; band < eqBandCount_; band++) {
-        if (std::abs(eqGains_[band]) < 0.1f) continue;
+    int idx = activeEqIndex_.load(std::memory_order_acquire);
+    const EqSnapshot& snap = eqSnapshots_[idx];
+
+    for (int band = 0; band < snap.bandCount; band++) {
+        if (std::abs(snap.gains[band]) < 0.1f) continue;
 
         for (int i = 0; i < numFrames; i++) {
-            buffer[i] = processBiquad(buffer[i], eqCoeffs_[band], eqStates_[band]);
+            buffer[i] = processBiquad(buffer[i], snap.coeffs[band], eqStates_[band]);
         }
     }
 }
@@ -71,10 +79,10 @@ void AudioProcessor::applyNoiseGate(float* buffer, int numFrames) {
     }
 }
 
-void AudioProcessor::computeEqCoefficients() {
-    for (int i = 0; i < eqBandCount_; i++) {
+void AudioProcessor::computeEqCoefficients(EqSnapshot& snap) {
+    for (int i = 0; i < snap.bandCount; i++) {
         float f0 = kCenterFreqs[i];
-        float gainDb = eqGains_[i];
+        float gainDb = snap.gains[i];
         float Q = 1.0f;
 
         float A = std::pow(10.0f, gainDb / 40.0f);
@@ -84,15 +92,15 @@ void AudioProcessor::computeEqCoefficients() {
         float alpha = sinW0 / (2.0f * Q);
 
         float a0 = 1.0f + alpha / A;
-        eqCoeffs_[i].b0 = (1.0f + alpha * A) / a0;
-        eqCoeffs_[i].b1 = (-2.0f * cosW0) / a0;
-        eqCoeffs_[i].b2 = (1.0f - alpha * A) / a0;
-        eqCoeffs_[i].a1 = (-2.0f * cosW0) / a0;
-        eqCoeffs_[i].a2 = (1.0f - alpha / A) / a0;
+        snap.coeffs[i].b0 = (1.0f + alpha * A) / a0;
+        snap.coeffs[i].b1 = (-2.0f * cosW0) / a0;
+        snap.coeffs[i].b2 = (1.0f - alpha * A) / a0;
+        snap.coeffs[i].a1 = (-2.0f * cosW0) / a0;
+        snap.coeffs[i].a2 = (1.0f - alpha / A) / a0;
     }
 }
 
-float AudioProcessor::processBiquad(float input, BiquadCoeffs& c, BiquadState& s) {
+float AudioProcessor::processBiquad(float input, const BiquadCoeffs& c, BiquadState& s) {
     float output = c.b0 * input + c.b1 * s.x1 + c.b2 * s.x2
                    - c.a1 * s.y1 - c.a2 * s.y2;
     s.x2 = s.x1;
