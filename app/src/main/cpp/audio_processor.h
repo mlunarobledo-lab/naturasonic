@@ -13,15 +13,9 @@ public:
     void setAmplification(float level);
     void setEqBands(const float* bands, int count);
     void setNoiseSuppressionEnabled(bool enabled);
+    void applyProfile(const float* bands, int count, float amplification, bool noiseSuppression);
 
 private:
-    void applyAmplification(float* buffer, int numFrames);
-    void applyEqualizer(float* buffer, int numFrames);
-    void applyNoiseGate(float* buffer, int numFrames);
-
-    std::atomic<float> amplification_{0.5f};
-    std::atomic<bool> noiseSuppressionEnabled_{false};
-
     static constexpr int kMaxEqBands = 10;
 
     struct BiquadState {
@@ -38,7 +32,13 @@ private:
         float gains[kMaxEqBands] = {};
         BiquadCoeffs coeffs[kMaxEqBands] = {};
         int bandCount = 5;
+        float amplification = 0.5f;
+        bool noiseSuppression = false;
     };
+
+    void applyAmplification(float* buffer, int numFrames, float level);
+    void applyEqualizer(float* buffer, int numFrames, const EqSnapshot& snap);
+    void applyNoiseGate(float* buffer, int numFrames);
 
     EqSnapshot eqSnapshots_[2];
     std::atomic<int> activeEqIndex_{0};

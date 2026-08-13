@@ -22,6 +22,7 @@ public:
     void setEqBands(const float* bands, int count);
     void setNoiseSuppressionEnabled(bool enabled);
     void setVolumeLimitDb(float limitDb);
+    void applyProfile(const float* bands, int count, float amplification, bool noiseSuppression);
 
     std::vector<float> getLatestAudioBuffer();
     std::vector<float> getYamnetAudioBuffer();

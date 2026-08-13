@@ -11,23 +11,35 @@ AudioProcessor::AudioProcessor() {
 }
 
 void AudioProcessor::process(float* buffer, int numFrames) {
-    applyAmplification(buffer, numFrames);
+    int idx = activeEqIndex_.load(std::memory_order_acquire);
+    const EqSnapshot& snap = eqSnapshots_[idx];
 
-    if (noiseSuppressionEnabled_.load()) {
+    applyAmplification(buffer, numFrames, snap.amplification);
+
+    if (snap.noiseSuppression) {
         applyNoiseGate(buffer, numFrames);
     }
 
-    applyEqualizer(buffer, numFrames);
+    applyEqualizer(buffer, numFrames, snap);
 }
 
 void AudioProcessor::setAmplification(float level) {
-    amplification_.store(std::clamp(level, 0.0f, 1.0f));
+    std::lock_guard<std::mutex> lock(eqWriteMutex_);
+    int readIdx = activeEqIndex_.load(std::memory_order_acquire);
+    int writeIdx = 1 - readIdx;
+
+    eqSnapshots_[writeIdx] = eqSnapshots_[readIdx];
+    eqSnapshots_[writeIdx].amplification = std::clamp(level, 0.0f, 1.0f);
+
+    activeEqIndex_.store(writeIdx, std::memory_order_release);
 }
 
 void AudioProcessor::setEqBands(const float* bands, int count) {
     std::lock_guard<std::mutex> lock(eqWriteMutex_);
-    int writeIdx = 1 - activeEqIndex_.load(std::memory_order_acquire);
+    int readIdx = activeEqIndex_.load(std::memory_order_acquire);
+    int writeIdx = 1 - readIdx;
 
+    eqSnapshots_[writeIdx] = eqSnapshots_[readIdx];
     EqSnapshot& snap = eqSnapshots_[writeIdx];
     snap.bandCount = std::min(count, kMaxEqBands);
     for (int i = 0; i < snap.bandCount; i++) {
@@ -39,22 +51,41 @@ void AudioProcessor::setEqBands(const float* bands, int count) {
 }
 
 void AudioProcessor::setNoiseSuppressionEnabled(bool enabled) {
-    noiseSuppressionEnabled_.store(enabled);
+    std::lock_guard<std::mutex> lock(eqWriteMutex_);
+    int readIdx = activeEqIndex_.load(std::memory_order_acquire);
+    int writeIdx = 1 - readIdx;
+
+    eqSnapshots_[writeIdx] = eqSnapshots_[readIdx];
+    eqSnapshots_[writeIdx].noiseSuppression = enabled;
+
+    activeEqIndex_.store(writeIdx, std::memory_order_release);
 }
 
-void AudioProcessor::applyAmplification(float* buffer, int numFrames) {
-    float gain = amplification_.load();
-    float linearGain = 1.0f + gain * 3.0f;
+void AudioProcessor::applyProfile(const float* bands, int count, float amplification, bool noiseSuppression) {
+    std::lock_guard<std::mutex> lock(eqWriteMutex_);
+    int writeIdx = 1 - activeEqIndex_.load(std::memory_order_acquire);
+
+    EqSnapshot& snap = eqSnapshots_[writeIdx];
+    snap.bandCount = std::min(count, kMaxEqBands);
+    for (int i = 0; i < snap.bandCount; i++) {
+        snap.gains[i] = std::clamp(bands[i], -12.0f, 12.0f);
+    }
+    computeEqCoefficients(snap);
+    snap.amplification = std::clamp(amplification, 0.0f, 1.0f);
+    snap.noiseSuppression = noiseSuppression;
+
+    activeEqIndex_.store(writeIdx, std::memory_order_release);
+}
+
+void AudioProcessor::applyAmplification(float* buffer, int numFrames, float level) {
+    float linearGain = 1.0f + level * 3.0f;
 
     for (int i = 0; i < numFrames; i++) {
         buffer[i] *= linearGain;
     }
 }
 
-void AudioProcessor::applyEqualizer(float* buffer, int numFrames) {
-    int idx = activeEqIndex_.load(std::memory_order_acquire);
-    const EqSnapshot& snap = eqSnapshots_[idx];
-
+void AudioProcessor::applyEqualizer(float* buffer, int numFrames, const EqSnapshot& snap) {
     for (int band = 0; band < snap.bandCount; band++) {
         if (std::abs(snap.gains[band]) < 0.1f) continue;
 

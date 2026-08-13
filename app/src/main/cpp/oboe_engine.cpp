@@ -76,6 +76,10 @@ void NaturaSonicEngine::setVolumeLimitDb(float limitDb) {
     limiter_.setLimitDb(limitDb);
 }
 
+void NaturaSonicEngine::applyProfile(const float* bands, int count, float amplification, bool noiseSuppression) {
+    processor_.applyProfile(bands, count, amplification, noiseSuppression);
+}
+
 std::vector<float> NaturaSonicEngine::getLatestAudioBuffer() {
     std::lock_guard<std::mutex> lock(bufferMutex_);
     return latestBuffer_;

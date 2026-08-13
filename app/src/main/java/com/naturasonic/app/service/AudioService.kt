@@ -26,6 +26,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -46,6 +48,7 @@ class AudioService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.Default + Job())
     private var volumeTickJob: Job? = null
     private var detectionJob: Job? = null
+    private var profileObserverJob: Job? = null
 
     inner class AudioBinder : Binder() {
         fun getService(): AudioService = this@AudioService
@@ -69,31 +72,44 @@ class AudioService : Service() {
             volumeProtection.onListeningStarted()
             startVolumeProtectionTick()
             startDetectionLoop()
-            restoreActiveProfile()
+            startProfileObserver()
         }
     }
 
-    private fun restoreActiveProfile() {
-        serviceScope.launch {
-            val modeKey = userPreferences.currentMode.first()
-            val mode = AudioMode.fromKey(modeKey)
-            val selectedId = userPreferences.selectedProfileId.first()
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
+    private fun startProfileObserver() {
+        profileObserverJob?.cancel()
+        profileObserverJob = serviceScope.launch {
+            combine(
+                userPreferences.selectedProfileId,
+                userPreferences.currentMode
+            ) { profileId, modeKey -> Pair(profileId, modeKey) }
+                .debounce(30)
+                .collect { (profileId, modeKey) ->
+                    val mode = AudioMode.fromKey(modeKey)
 
-            val profile = if (selectedId > 0) {
-                audioProfileRepository.getById(selectedId)
-            } else {
-                null
-            } ?: audioProfileRepository.getDefaultProfile(mode)
+                    val profile = if (profileId > 0) {
+                        audioProfileRepository.getById(profileId)
+                    } else {
+                        null
+                    } ?: audioProfileRepository.getDefaultProfile(mode)
 
-            if (profile != null) {
-                modeManager.applyProfile(profile, 0)
-            } else {
-                modeManager.applyMode(mode, 0)
-            }
+                    if (profile != null) {
+                        modeManager.applyProfile(profile, 0)
+                    }
+
+                    val config = modeManager.getModeConfig(mode)
+                    if (config.alertDetectionEnabled) {
+                        alertDetector.start()
+                    } else {
+                        alertDetector.stop()
+                    }
+                }
         }
     }
 
     private fun stopAudio() {
+        profileObserverJob?.cancel()
         detectionJob?.cancel()
         volumeTickJob?.cancel()
         volumeProtection.onListeningStopped()

@@ -172,20 +172,20 @@ No hay cambios al schema de Room. El entity `AudioProfile` ya almacena `eqBands`
 - **Objetivo**: Crear la corrutina de observación que conecta cambios de perfil en Room con el engine C++ via JNI. Cuando el perfil activo cambia (nuevo perfil seleccionado, slider movido y persistido), el Flow emite → debounce ~30ms → `AudioModeManager.applyProfile` → JNI `setEqBands`. Integrar en `AudioService` como observer lifecycle-aware.
 - **Archivos a tocar**: `AudioModeManager.kt`, `AudioService.kt`, `UserPreferences.kt`
 - **Validación**:
-  - [ ] Un `collect` sobre `selectedProfileId` + `AudioProfileRepository` propaga cambios al engine
-  - [ ] Debounce de ~30ms agrupa actualizaciones rápidas de slider
-  - [ ] El observer se cancela correctamente en `AudioService.stopAudio()`
-  - [ ] Cambio de modo (CONVERSATION → ENTERTAINMENT) actualiza selectedProfileId → observer aplica nuevo perfil
-  - [ ] `./gradlew assembleDebug` compila sin errores
+  - [x] Un `collect` sobre `selectedProfileId` + `AudioProfileRepository` propaga cambios al engine — `combine(selectedProfileId, currentMode)` → `collect` → `modeManager.applyProfile`
+  - [x] Debounce de ~30ms agrupa actualizaciones rápidas de slider — `.debounce(30)` en la cadena de Flow
+  - [x] El observer se cancela correctamente en `AudioService.stopAudio()` — `profileObserverJob?.cancel()` al inicio de `stopAudio()`
+  - [x] Cambio de modo (CONVERSATION → ENTERTAINMENT) actualiza selectedProfileId → observer aplica nuevo perfil — `currentMode` en el `combine` dispara re-evaluación
+  - [x] `./gradlew assembleDebug` compila sin errores — BUILD SUCCESSFUL (arm64-v8a, armeabi-v7a, x86_64)
 
 ### Fase 3: Operación atómica de perfil completo (EQ + amplificación + NS)
 - **Objetivo**: Garantizar que `applyProfile` envíe todas las propiedades del perfil (bandas EQ, amplificación, noise suppression, AEC) como una unidad atómica desde la perspectiva del engine. Evitar estados intermedios donde el EQ es del perfil nuevo pero la amplificación del viejo.
 - **Archivos a tocar**: `audio_processor.h`, `audio_processor.cpp`, `native-lib.cpp`, `oboe_engine.h`, `oboe_engine.cpp`, `OboeAudioEngine.kt`, `AudioModeManager.kt`
 - **Validación**:
-  - [ ] Nuevo método JNI `nativeApplyProfile(handle, bands, amplification, nsSuppression)` que configure todo en una sola llamada
-  - [ ] En C++, `AudioProcessor::applyProfile()` actualiza gains, amplificación y NS en el buffer inactivo, luego hace un solo swap atómico
-  - [ ] `AudioModeManager.applyProfile` usa el nuevo método atómico en vez de 3 llamadas separadas
-  - [ ] `./gradlew assembleDebug` compila sin errores
+  - [x] Nuevo método JNI `nativeApplyProfile(handle, bands, amplification, nsSuppression)` que configure todo en una sola llamada — `nativeApplyProfile` en `native-lib.cpp` → `OboeAudioEngine.kt`
+  - [x] En C++, `AudioProcessor::applyProfile()` actualiza gains, amplificación y NS en el buffer inactivo, luego hace un solo swap atómico — escritura directa en `eqSnapshots_[writeIdx]` + `activeEqIndex_.store(writeIdx, memory_order_release)`
+  - [x] `AudioModeManager.applyProfile` usa el nuevo método atómico en vez de 3 llamadas separadas — `audioEngine.applyProfile(bands, amplificationLevel, noiseSuppressionEnabled)` + `setAecEnabled` separado (AEC es Android AudioEffect, no C++)
+  - [x] `./gradlew assembleDebug` compila sin errores — BUILD SUCCESSFUL (arm64-v8a, armeabi-v7a, x86_64)
 
 ### Fase 4: Validación end-to-end y build de producción
 - **Objetivo**: Verificar el flujo completo: seleccionar perfil en UI → Room persiste → observer emite → debounce → JNI atómico → AudioProcessor aplica sin glitch. Confirmar build limpio.

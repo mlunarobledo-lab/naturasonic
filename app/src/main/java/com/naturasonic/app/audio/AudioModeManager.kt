@@ -103,9 +103,7 @@ class AudioModeManager @Inject constructor(
         } catch (_: Exception) {
             FloatArray(10) { 0f }
         }
-        audioEngine.setEqBands(bands)
-        audioEngine.setAmplification(profile.amplificationLevel)
-        audioEngine.setNoiseSuppressionEnabled(profile.noiseSuppressionEnabled)
+        audioEngine.applyProfile(bands, profile.amplificationLevel, profile.noiseSuppressionEnabled)
         audioSessionManager.setAecEnabled(audioSessionId, profile.aecEnabled)
     }
 

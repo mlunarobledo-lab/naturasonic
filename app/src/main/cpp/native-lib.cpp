@@ -77,6 +77,19 @@ Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetVolumeLimitDb(
     }
 }
 
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeApplyProfile(
+        JNIEnv* env, jobject thiz, jlong engineHandle,
+        jfloatArray bands, jfloat amplification, jboolean noiseSuppression) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng && bands) {
+        jsize len = env->GetArrayLength(bands);
+        jfloat* data = env->GetFloatArrayElements(bands, nullptr);
+        eng->applyProfile(data, len, amplification, noiseSuppression == JNI_TRUE);
+        env->ReleaseFloatArrayElements(bands, data, JNI_ABORT);
+    }
+}
+
 JNIEXPORT jfloatArray JNICALL
 Java_com_naturasonic_app_audio_OboeAudioEngine_nativeGetAudioBuffer(
         JNIEnv* env, jobject thiz, jlong engineHandle) {
