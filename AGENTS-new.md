@@ -291,6 +291,11 @@ npx playwright snapshot http://localhost:3000
 ```
 
 **MCP tools:** `playwright_navigate`, `playwright_screenshot`, `playwright_click/fill`
+
+### Vercel MCP
+Conectado via URL. Gestiona deployments, dominios, variables de entorno y logs desde Claude Code.
+
+**Tools:** `deploy_to_vercel`, `list_deployments`, `get_runtime_logs`, `check_domain_availability`
 <!-- PRAXIS:MCP_END -->
 
 ---
@@ -383,4 +388,4 @@ Agent-First. El usuario dicta el objetivo; TÚ ejecutas a la perfección
 
 **Este archivo es la fuente de verdad para el desarrollo en este proyecto. Todas las decisiones de código deben alinearse con estos principios**
 
-<!-- px:bc5f4e4e7c76d137 -->
+<!-- px:213d0d2d759974d5 -->
