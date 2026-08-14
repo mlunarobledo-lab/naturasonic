@@ -12,6 +12,12 @@ interface AlertEventDao {
     @Query("SELECT * FROM alert_log ORDER BY detectedAt DESC LIMIT :limit")
     fun getRecent(limit: Int = 100): Flow<List<AlertEvent>>
 
+    @Query("SELECT * FROM alert_log ORDER BY detectedAt DESC")
+    fun getAll(): Flow<List<AlertEvent>>
+
+    @Query("SELECT * FROM alert_log WHERE soundClass = :soundClass ORDER BY detectedAt DESC")
+    fun getByClass(soundClass: String): Flow<List<AlertEvent>>
+
     @Insert
     suspend fun insert(event: AlertEvent): Long
 

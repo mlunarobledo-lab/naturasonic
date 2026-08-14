@@ -7,6 +7,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.naturasonic.app.ui.screens.alerts.AlertHistoryScreen
 import com.naturasonic.app.ui.screens.home.HomeScreen
 import com.naturasonic.app.ui.screens.home.HomeViewModel
 import com.naturasonic.app.ui.screens.onboarding.OnboardingScreen
@@ -21,6 +22,7 @@ object Routes {
     const val HOME = "home"
     const val TRANSCRIPTION = "transcription"
     const val SETTINGS = "settings"
+    const val ALERT_HISTORY = "alert_history"
 }
 
 @Composable
@@ -53,6 +55,9 @@ fun NaturaSonicNavHost() {
                 },
                 onNavigateToSettings = {
                     navController.navigate(Routes.SETTINGS)
+                },
+                onNavigateToAlertHistory = {
+                    navController.navigate(Routes.ALERT_HISTORY)
                 }
             )
         }
@@ -65,6 +70,12 @@ fun NaturaSonicNavHost() {
 
         composable(Routes.SETTINGS) {
             SettingsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.ALERT_HISTORY) {
+            AlertHistoryScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

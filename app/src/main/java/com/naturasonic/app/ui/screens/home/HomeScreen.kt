@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothDisabled
 import androidx.compose.material.icons.filled.Hearing
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.HeadsetMic
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Mic
@@ -84,6 +85,7 @@ import kotlinx.coroutines.delay
 fun HomeScreen(
     onNavigateToTranscription: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToAlertHistory: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -223,12 +225,21 @@ fun HomeScreen(
                     modifier = Modifier.weight(1f)
                 )
                 ActionCard(
-                    icon = Icons.Default.LocalHospital,
-                    label = stringResource(R.string.health_note_title),
-                    onClick = { showHealthNote = true },
+                    icon = Icons.Default.History,
+                    label = "Historial alertas",
+                    onClick = onNavigateToAlertHistory,
                     modifier = Modifier.weight(1f)
                 )
             }
+
+            Spacer(Modifier.height(12.dp))
+
+            ActionCard(
+                icon = Icons.Default.LocalHospital,
+                label = stringResource(R.string.health_note_title),
+                onClick = { showHealthNote = true },
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Spacer(Modifier.height(12.dp))
 
@@ -518,7 +529,7 @@ private fun SoundAlertCard(alert: DetectedAlert) {
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    alert.soundClass.displayName(),
+                    alert.soundClass.displayName,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onErrorContainer
                 )
@@ -533,17 +544,7 @@ private fun SoundAlertCard(alert: DetectedAlert) {
     }
 }
 
-private fun AlertSoundClass.displayName(): String = when (this) {
-    AlertSoundClass.SIREN -> "Sirena detectada"
-    AlertSoundClass.DOORBELL -> "Timbre detectado"
-    AlertSoundClass.BABY_CRY -> "Llanto de bebé detectado"
-    AlertSoundClass.SMOKE_ALARM -> "Alarma de humo detectada"
-    AlertSoundClass.CAR_HORN -> "Claxon detectado"
-    AlertSoundClass.GLASS_BREAK -> "Cristal roto detectado"
-    AlertSoundClass.DOG_BARK -> "Ladrido detectado"
-}
-
-private fun AlertSoundClass.icon(): ImageVector = when (this) {
+internal fun AlertSoundClass.icon(): ImageVector = when (this) {
     AlertSoundClass.SIREN -> Icons.Default.Campaign
     AlertSoundClass.DOORBELL -> Icons.Default.Doorbell
     AlertSoundClass.BABY_CRY -> Icons.Default.ChildCare
