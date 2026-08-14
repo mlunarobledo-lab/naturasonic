@@ -5,9 +5,17 @@
 #include <string>
 #include <mutex>
 #include <atomic>
+#include <chrono>
 #include "audio_processor.h"
 #include "volume_limiter.h"
 #include "whisper_bridge.h"
+
+struct LatencyStats {
+    float dspMinUs = 0;
+    float dspMaxUs = 0;
+    float dspAvgUs = 0;
+    int64_t frameCount = 0;
+};
 
 class NaturaSonicEngine : public oboe::AudioStreamDataCallback,
                            public oboe::AudioStreamErrorCallback {
@@ -26,6 +34,7 @@ public:
 
     std::vector<float> getLatestAudioBuffer();
     std::vector<float> getYamnetAudioBuffer();
+    LatencyStats getLatencyStats() const;
 
     bool initWhisper(const char* modelPath);
     void releaseWhisper();
@@ -61,6 +70,11 @@ private:
     std::mutex yamnetMutex_;
 
     std::atomic<bool> running_{false};
+
+    static constexpr int kLatencyWindowSize = 256;
+    float latencyHistoryUs_[kLatencyWindowSize] = {};
+    int latencyWritePos_ = 0;
+    std::atomic<int64_t> totalFrameCount_{0};
 
     static constexpr int kSampleRate = 48000;
     static constexpr int kChannelCount = 1;

@@ -20,6 +20,7 @@ import com.naturasonic.app.data.local.entity.AudioMode
 import com.naturasonic.app.data.preferences.UserPreferences
 import com.naturasonic.app.data.repository.AudioProfileRepository
 import com.naturasonic.app.detection.SoundAlertDetector
+import com.naturasonic.app.performance.PerformanceTracker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +44,7 @@ class AudioService : Service() {
     @Inject lateinit var audioProfileRepository: AudioProfileRepository
     @Inject lateinit var userPreferences: UserPreferences
     @Inject lateinit var modeManager: AudioModeManager
+    @Inject lateinit var performanceTracker: PerformanceTracker
 
     private val binder = AudioBinder()
     private val serviceScope = CoroutineScope(Dispatchers.Default + Job())
@@ -138,11 +140,22 @@ class AudioService : Service() {
             delay(1000)
             while (isActive) {
                 if (alertDetector.isRunning.value) {
+                    val t0 = System.nanoTime()
                     val buffer = audioEngine.getYamnetAudioBuffer()
+                    val jniCopyNs = System.nanoTime() - t0
                     if (buffer != null) {
-                        alertDetector.processAudio48kHz(buffer)
+                        val timing = alertDetector.processAudio48kHz(buffer)
+                        if (timing != null) {
+                            performanceTracker.reportDetectionTiming(
+                                jniCopyNs = jniCopyNs,
+                                resampleNs = timing.resampleNs,
+                                classifyNs = timing.classifyNs
+                            )
+                        }
                     }
                 }
+                performanceTracker.refreshDspStats()
+                performanceTracker.refreshMemoryStats()
                 delay(DETECTION_INTERVAL_MS)
             }
         }

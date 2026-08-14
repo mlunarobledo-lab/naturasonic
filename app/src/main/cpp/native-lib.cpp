@@ -118,6 +118,20 @@ Java_com_naturasonic_app_audio_OboeAudioEngine_nativeGetYamnetAudioBuffer(
     return result;
 }
 
+JNIEXPORT jfloatArray JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeGetLatencyStats(
+        JNIEnv* env, jobject thiz, jlong engineHandle) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (!eng) return nullptr;
+
+    auto stats = eng->getLatencyStats();
+    jfloatArray result = env->NewFloatArray(4);
+    float data[4] = {stats.dspMinUs, stats.dspMaxUs, stats.dspAvgUs,
+                     static_cast<float>(stats.frameCount)};
+    env->SetFloatArrayRegion(result, 0, 4, data);
+    return result;
+}
+
 JNIEXPORT void JNICALL
 Java_com_naturasonic_app_audio_OboeAudioEngine_nativeDestroy(
         JNIEnv* env, jobject thiz, jlong engineHandle) {

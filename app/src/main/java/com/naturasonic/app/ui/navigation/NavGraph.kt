@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.naturasonic.app.ui.screens.alerts.AlertHistoryScreen
 import com.naturasonic.app.ui.screens.home.HomeScreen
+import com.naturasonic.app.ui.screens.performance.PerformanceScreen
 import com.naturasonic.app.ui.screens.home.HomeViewModel
 import com.naturasonic.app.ui.screens.onboarding.OnboardingScreen
 import com.naturasonic.app.ui.screens.onboarding.OnboardingViewModel
@@ -23,6 +24,7 @@ object Routes {
     const val TRANSCRIPTION = "transcription"
     const val SETTINGS = "settings"
     const val ALERT_HISTORY = "alert_history"
+    const val PERFORMANCE = "performance"
 }
 
 @Composable
@@ -70,6 +72,15 @@ fun NaturaSonicNavHost() {
 
         composable(Routes.SETTINGS) {
             SettingsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToPerformance = {
+                    navController.navigate(Routes.PERFORMANCE)
+                }
+            )
+        }
+
+        composable(Routes.PERFORMANCE) {
+            PerformanceScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

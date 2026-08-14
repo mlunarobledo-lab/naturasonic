@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -59,6 +60,7 @@ private val EQ_LABELS = listOf("125", "250", "500", "1K", "2K", "4K", "6K", "8K"
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToPerformance: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -163,6 +165,14 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.height(24.dp))
             }
+
+            TextButton(onClick = onNavigateToPerformance) {
+                Icon(Icons.Default.Speed, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Rendimiento")
+            }
+
+            Spacer(Modifier.height(8.dp))
 
             TextButton(onClick = { showDisclaimer = true }) {
                 Icon(Icons.Default.Info, contentDescription = null)

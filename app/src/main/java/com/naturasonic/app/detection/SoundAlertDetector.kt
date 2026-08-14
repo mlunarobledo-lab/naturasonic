@@ -75,10 +75,16 @@ class SoundAlertDetector @Inject constructor(
         _isRunning.value = false
     }
 
-    fun processAudio48kHz(buffer48k: FloatArray) {
-        if (buffer48k.size < YAMNET_48K_INPUT_SIZE) return
+    data class ProcessTiming(val resampleNs: Long, val classifyNs: Long)
+
+    fun processAudio48kHz(buffer48k: FloatArray): ProcessTiming? {
+        if (buffer48k.size < YAMNET_48K_INPUT_SIZE) return null
+        val t0 = System.nanoTime()
         val resampled = resample48to16(buffer48k)
+        val t1 = System.nanoTime()
         processAudioBuffer(resampled)
+        val t2 = System.nanoTime()
+        return ProcessTiming(resampleNs = t1 - t0, classifyNs = t2 - t1)
     }
 
     private fun resample48to16(input: FloatArray): FloatArray {

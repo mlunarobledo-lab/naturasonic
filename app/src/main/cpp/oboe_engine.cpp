@@ -1,5 +1,6 @@
 #include "oboe_engine.h"
 #include <android/log.h>
+#include <android/trace.h>
 #include <cstring>
 #include <algorithm>
 
@@ -115,8 +116,19 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
             if (result.value() > 0) {
                 int framesToProcess = result.value();
 
+                ATrace_beginSection("NaturaSonic::DSP");
+                auto dspStart = std::chrono::steady_clock::now();
+
                 processor_.process(captureBuffer_.data(), framesToProcess);
                 limiter_.process(captureBuffer_.data(), framesToProcess);
+
+                auto dspEnd = std::chrono::steady_clock::now();
+                ATrace_endSection();
+
+                float elapsedUs = std::chrono::duration<float, std::micro>(dspEnd - dspStart).count();
+                latencyHistoryUs_[latencyWritePos_ % kLatencyWindowSize] = elapsedUs;
+                latencyWritePos_++;
+                totalFrameCount_.fetch_add(1, std::memory_order_relaxed);
 
                 std::memcpy(output, captureBuffer_.data(),
                            framesToProcess * kChannelCount * sizeof(float));
@@ -186,6 +198,28 @@ bool NaturaSonicEngine::isWhisperCapturing() const {
 
 bool NaturaSonicEngine::isWhisperModelLoaded() const {
     return whisperBridge_.isModelLoaded();
+}
+
+LatencyStats NaturaSonicEngine::getLatencyStats() const {
+    LatencyStats stats;
+    stats.frameCount = totalFrameCount_.load(std::memory_order_relaxed);
+
+    int count = std::min(static_cast<int>(stats.frameCount), kLatencyWindowSize);
+    if (count == 0) return stats;
+
+    float minVal = latencyHistoryUs_[0];
+    float maxVal = latencyHistoryUs_[0];
+    float sum = 0;
+    for (int i = 0; i < count; i++) {
+        float v = latencyHistoryUs_[i];
+        if (v < minVal) minVal = v;
+        if (v > maxVal) maxVal = v;
+        sum += v;
+    }
+    stats.dspMinUs = minVal;
+    stats.dspMaxUs = maxVal;
+    stats.dspAvgUs = sum / static_cast<float>(count);
+    return stats;
 }
 
 void NaturaSonicEngine::openInputStream() {
