@@ -71,4 +71,5 @@
     <string name="notification_audio_service_text">Amplificación de audio en curso</string>
     <string name="notification_channel_audio">Servicio de audio</string>
     <string name="notification_channel_alerts">Alertas de sonido</string>
+    <string name="notification_alert_title">NaturaSonic — Alerta detectada</string>
 </resources>

@@ -31,7 +31,9 @@ data class DetectedAlert(
 class SoundAlertDetector @Inject constructor(
     @ApplicationContext private val context: Context,
     private val alertEventDao: AlertEventDao,
-    private val yamnetModelManager: YamnetModelManager
+    private val yamnetModelManager: YamnetModelManager,
+    private val lifecycleTracker: AppLifecycleTracker,
+    private val alertNotificationManager: AlertNotificationManager
 ) {
     private var classifier: AudioClassifier? = null
     private var tensorAudio: TensorAudio? = null
@@ -113,7 +115,10 @@ class SoundAlertDetector @Inject constructor(
                     val alertClass = AlertSoundClass.fromYamnetIndex(category.index) ?: continue
                     val alert = DetectedAlert(alertClass, category.score)
                     _latestAlert.value = alert
-                    vibrate()
+                    vibrateForClass(alertClass)
+                    if (!lifecycleTracker.isAppInForeground) {
+                        alertNotificationManager.showAlertNotification(alertClass, category.score)
+                    }
                     scope.launch {
                         alertEventDao.insert(
                             AlertEvent(
@@ -128,7 +133,7 @@ class SoundAlertDetector @Inject constructor(
         } catch (_: Exception) { }
     }
 
-    private fun vibrate() {
+    private fun vibrateForClass(alertClass: AlertSoundClass) {
         try {
             val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val manager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -138,8 +143,9 @@ class SoundAlertDetector @Inject constructor(
                 context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             }
 
+            val pattern = AlertVibrationPatterns.getPattern(alertClass)
             vibrator.vibrate(
-                VibrationEffect.createOneShot(300, VibrationEffect.DEFAULT_AMPLITUDE)
+                VibrationEffect.createWaveform(pattern, -1)
             )
         } catch (_: Exception) { }
     }
