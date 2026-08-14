@@ -414,19 +414,9 @@ npx tsc --noEmit     # Verificar tipos
 
 ---
 
-## Checkpoint de estado (2026-08-13)
+## Checkpoint de estado (2026-08-14)
 
-**PRPs cerrados**: PRP-001 (scaffold Fases 0-7), PRP-002 (whisper.cpp FetchContent), PRP-003 (JNI bridge unificado), PRP-004 (GgmlModelManager + assets), PRP-005 (YAMNet/TFLite detección de alertas), PRP-006 (Room persistence — perfiles EQ + configuraciones).
-
-**PRP-007 EN PROGRESO (Fases 1-3 COMPLETADAS, Fase 4 PENDIENTE)**: Pipeline Avanzado de Modos de Escucha — Enlace Room ↔ Oboe. Implementa el flujo reactivo completo: Room → Flow → debounce → JNI atómico → AudioProcessor C++ con double-buffer.
-
-**Fase 1 (COMPLETADA)**: Thread-safety con double-buffer de coeficientes biquad. `EqSnapshot` struct agrupa gains + coeffs + bandCount. `std::atomic<int> activeEqIndex_` con `memory_order_acquire/release`. Writer mutex solo en JNI thread, nunca en audio callback. `BiquadState` permanece único (estado continuo IIR).
-
-**Fase 2 (COMPLETADA)**: Observación reactiva Room → Engine. `restoreActiveProfile()` one-shot reemplazado por `startProfileObserver()` en AudioService. `combine(selectedProfileId, currentMode).debounce(30).collect` propaga cambios de perfil/modo al engine automáticamente. Sin feedback loop: observer llama `modeManager.applyProfile` directamente (no `applyMode`). Job cancelado en `stopAudio()`.
-
-**Fase 3 (COMPLETADA)**: Operación atómica `nativeApplyProfile`. `EqSnapshot` expandido con `float amplification` + `bool noiseSuppression`. `process()` lee TODO desde un solo snapshot con un solo `memory_order_acquire`. Todos los setters (`setAmplification`, `setEqBands`, `setNoiseSuppressionEnabled`) usan copy-modify-swap: copian snapshot activo → modifican campo → swap atómico. Nuevo `applyProfile()` en cadena completa: AudioProcessor → NaturaSonicEngine → JNI (`nativeApplyProfile`) → OboeAudioEngine.kt → AudioModeManager.kt. AEC separado (Android AudioEffect, no C++). BUILD SUCCESSFUL 3 ABIs (arm64-v8a, armeabi-v7a, x86_64).
-
-**Fase 4 (PENDIENTE — SIGUIENTE PASO INMEDIATO)**: Validación end-to-end. `./gradlew lint`, revisión de thread-safety (ningún acceso no-protegido a gains/coeffs), criterios de éxito del PRP, cierre del hito.
+**PRPs cerrados**: PRP-001 (scaffold Fases 0-7), PRP-002 (whisper.cpp FetchContent), PRP-003 (JNI bridge unificado), PRP-004 (GgmlModelManager + assets), PRP-005 (YAMNet/TFLite detección de alertas), PRP-006 (Room persistence — perfiles EQ + configuraciones), PRP-007 (Pipeline Avanzado de Modos de Escucha — enlace reactivo Room ↔ Oboe con double-buffer atómico).
 
 **Pipeline nativo**: Oboe 48kHz mono (onAudioReady) → AudioProcessor (double-buffer EqSnapshot con amplification + NS + EQ atómicos) → VolumeLimiter → latestBuffer_ (frame actual) + yamnetBuffer_ (ring buffer 1s) + WhisperBridge::feedAudio(). WhisperBridge: decimación 3:1 C++, thread dedicado, whisper_full segmentos 10s → texto via JNI polling → StateFlow → Compose. YAMNet: yamnetBuffer_ → JNI → decimación 3:1 Kotlin → AudioClassifier (TFLite Task Audio) → DetectedAlert StateFlow → SoundAlertCard Compose (animada, auto-dismiss 5s). Librería única `libnaturasonic.so`. Modelos: GgmlModelManager (GGML assets) + YamnetModelManager (TFLite assets).
 

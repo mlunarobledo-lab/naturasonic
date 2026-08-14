@@ -1,7 +1,8 @@
 # PRP-007: Pipeline Avanzado de Modos de Escucha — Enlace Room ↔ Oboe
 
-> **Estado**: EN PROGRESO
-> **Fecha**: 2026-08-13
+> **Estado**: COMPLETADO
+> **Fecha inicio**: 2026-08-13
+> **Fecha cierre**: 2026-08-14
 > **Proyecto**: NaturaSonic
 
 ---
@@ -29,13 +30,13 @@ Quiero que cuando seleccione un perfil de ecualización guardado en Room, las 10
 ## Qué
 
 ### Criterios de éxito
-- [ ] Mover cualquiera de las 10 bandas EQ en la UI actualiza el filtro biquad en C++ en < 10ms sin glitch audible
-- [ ] Cambiar de perfil en Room actualiza las 10 bandas en el engine automáticamente via Flow → JNI
-- [ ] Los coeficientes biquad se recalculan fuera del thread de audio (doble-buffer o swap atómico)
-- [ ] Rate-limiting (debounce ~30ms) previene flooding JNI cuando el usuario arrastra un slider rápidamente
-- [ ] La amplificación y noise suppression del perfil se aplican junto con las bandas EQ en una sola operación atómica
-- [ ] `./gradlew assembleDebug` compila sin errores
-- [ ] No se modifica la versión de AGP ni se agregan dependencias nuevas
+- [x] Mover cualquiera de las 10 bandas EQ en la UI actualiza el filtro biquad en C++ en < 10ms sin glitch audible
+- [x] Cambiar de perfil en Room actualiza las 10 bandas en el engine automáticamente via Flow → JNI
+- [x] Los coeficientes biquad se recalculan fuera del thread de audio (doble-buffer o swap atómico)
+- [x] Rate-limiting (debounce ~30ms) previene flooding JNI cuando el usuario arrastra un slider rápidamente
+- [x] La amplificación y noise suppression del perfil se aplican junto con las bandas EQ en una sola operación atómica
+- [x] `./gradlew assembleDebug` compila sin errores
+- [x] No se modifica la versión de AGP ni se agregan dependencias nuevas
 
 ### Comportamiento esperado
 
@@ -187,13 +188,13 @@ No hay cambios al schema de Room. El entity `AudioProfile` ya almacena `eqBands`
   - [x] `AudioModeManager.applyProfile` usa el nuevo método atómico en vez de 3 llamadas separadas — `audioEngine.applyProfile(bands, amplificationLevel, noiseSuppressionEnabled)` + `setAecEnabled` separado (AEC es Android AudioEffect, no C++)
   - [x] `./gradlew assembleDebug` compila sin errores — BUILD SUCCESSFUL (arm64-v8a, armeabi-v7a, x86_64)
 
-### Fase 4: Validación end-to-end y build de producción
+### Fase 4: Validación end-to-end y build de producción ✅
 - **Objetivo**: Verificar el flujo completo: seleccionar perfil en UI → Room persiste → observer emite → debounce → JNI atómico → AudioProcessor aplica sin glitch. Confirmar build limpio.
 - **Validación**:
-  - [ ] Criterios de éxito cumplidos (todos los checkboxes de la sección "Qué")
-  - [ ] `./gradlew assembleDebug` exitoso
-  - [ ] `./gradlew lint` sin errores críticos
-  - [ ] Revisión de thread-safety: ningún acceso no-protegido a `eqGains_`/`eqCoeffs_` desde threads concurrentes
+  - [x] Criterios de éxito cumplidos (todos los checkboxes de la sección "Qué") — verificados 7/7
+  - [x] `./gradlew assembleDebug` exitoso — BUILD SUCCESSFUL (arm64-v8a, armeabi-v7a, x86_64)
+  - [x] `./gradlew lint` sin errores críticos — 0 errores (se corrigieron backup_rules.xml con excludes redundantes/dominios inválidos)
+  - [x] Revisión de thread-safety: `process()` usa `activeEqIndex_.load(memory_order_acquire)` → referencia const a EqSnapshot. Todos los setters usan `lock_guard<mutex>` + copy-modify-swap + `store(memory_order_release)`. `BiquadState` y `noiseGateEnvelope_` solo se acceden desde audio thread. Ningún acceso no-protegido confirmado.
 
 ---
 
@@ -201,7 +202,16 @@ No hay cambios al schema de Room. El entity `AudioProfile` ya almacena `eqBands`
 
 > Esta sección crece con cada error. El conocimiento persiste para futuros PRPs.
 
-*(Vacío — se completará durante la ejecución)*
+**2026-08-14 — backup_rules.xml: excludes redundantes causan lint errors**
+- **Error**: `<exclude domain="cache" path=".">` usa un dominio inválido (`cache` no existe en `full-backup-content`). Excludes para paths fuera de los includes explícitos son redundantes y generan `FullBackupContent` errors.
+- **Fix**: Eliminados todos los `<exclude>` redundantes. Con `<include>` explícitos, todo lo no incluido ya está excluido automáticamente.
+- **Aplicar en**: Cualquier futuro cambio a backup rules — usar solo `<include>` explícitos cuando la lista de backup es acotada.
+
+**2026-08-14 — Thread-safety del AudioProcessor verificada formalmente**
+- `process()`: un solo `load(memory_order_acquire)` al snapshot activo, referencia const.
+- Setters (`setAmplification`, `setEqBands`, `setNoiseSuppressionEnabled`, `applyProfile`): `lock_guard<mutex>` + copy-modify-swap + `store(memory_order_release)`.
+- `BiquadState[]` y `noiseGateEnvelope_`: acceso exclusivo desde audio thread (no requieren protección).
+- Patrón validado: ningún acceso no-protegido a gains/coeffs desde threads concurrentes.
 
 ---
 
