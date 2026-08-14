@@ -2,10 +2,13 @@ package com.naturasonic.app.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.work.WorkManager
 import com.naturasonic.app.data.local.AppDatabase
 import com.naturasonic.app.data.local.dao.AlertEventDao
 import com.naturasonic.app.data.local.dao.AudioProfileDao
 import com.naturasonic.app.data.local.dao.TranscriptionDao
+import com.naturasonic.app.sync.CloudSyncApi
+import com.naturasonic.app.sync.StubCloudSyncApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -24,7 +27,9 @@ object AppModule {
             context,
             AppDatabase::class.java,
             "naturasonic.db"
-        ).build()
+        )
+            .addMigrations(AppDatabase.MIGRATION_1_2)
+            .build()
 
     @Provides
     fun provideAudioProfileDao(db: AppDatabase): AudioProfileDao = db.audioProfileDao()
@@ -34,4 +39,13 @@ object AppModule {
 
     @Provides
     fun provideAlertEventDao(db: AppDatabase): AlertEventDao = db.alertEventDao()
+
+    @Provides
+    @Singleton
+    fun provideCloudSyncApi(stub: StubCloudSyncApi): CloudSyncApi = stub
+
+    @Provides
+    @Singleton
+    fun provideWorkManager(@ApplicationContext context: Context): WorkManager =
+        WorkManager.getInstance(context)
 }

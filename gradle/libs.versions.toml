@@ -15,6 +15,8 @@ playBilling = "7.1.1"
 tensorflowLite = "2.16.1"
 tensorflowLiteSupport = "0.4.4"
 tensorflowLiteTaskAudio = "0.4.4"
+workManager = "2.9.1"
+hiltWork = "1.2.0"
 oboe = "1.9.0"
 coreKtx = "1.15.0"
 lifecycleRuntime = "2.8.7"
@@ -39,6 +41,10 @@ compose-material-icons-extended = { group = "androidx.compose.material", name = 
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-android-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version = "1.2.0" }
+hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltWork" }
+hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltWork" }
+
+work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workManager" }
 
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }

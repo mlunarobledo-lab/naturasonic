@@ -96,6 +96,10 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.hilt.work)
+    ksp(libs.hilt.compiler)
+
+    implementation(libs.work.runtime.ktx)
 
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)

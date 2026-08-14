@@ -38,4 +38,10 @@ interface AudioProfileDao {
 
     @Query("SELECT COUNT(*) FROM audio_profiles")
     suspend fun count(): Int
+
+    @Query("SELECT * FROM audio_profiles WHERE isSynced = 0")
+    suspend fun getUnsyncedProfiles(): List<AudioProfile>
+
+    @Query("UPDATE audio_profiles SET isSynced = 1 WHERE id IN (:ids)")
+    suspend fun markAsSynced(ids: List<Long>)
 }

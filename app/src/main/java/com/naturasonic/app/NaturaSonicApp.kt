@@ -3,6 +3,7 @@ package com.naturasonic.app
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import androidx.work.Configuration
 import com.naturasonic.app.data.repository.AudioProfileRepository
 import com.naturasonic.app.detection.AppLifecycleTracker
 import dagger.hilt.android.HiltAndroidApp
@@ -12,10 +13,11 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltAndroidApp
-class NaturaSonicApp : Application() {
+class NaturaSonicApp : Application(), Configuration.Provider {
 
     @Inject lateinit var audioProfileRepository: AudioProfileRepository
     @Inject lateinit var lifecycleTracker: AppLifecycleTracker
+    @Inject lateinit var workerFactory: androidx.hilt.work.HiltWorkerFactory
 
     override fun onCreate() {
         super.onCreate()
@@ -25,6 +27,11 @@ class NaturaSonicApp : Application() {
             audioProfileRepository.ensureDefaultProfiles()
         }
     }
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
 
     private fun createNotificationChannels() {
         val manager = getSystemService(NotificationManager::class.java)

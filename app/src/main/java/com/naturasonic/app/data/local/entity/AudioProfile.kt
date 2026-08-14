@@ -13,7 +13,9 @@ data class AudioProfile(
     val noiseSuppressionEnabled: Boolean,
     val aecEnabled: Boolean,
     val isDefault: Boolean = false,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val isSynced: Boolean = false,
+    val lastModified: Long = System.currentTimeMillis()
 )
 
 enum class AudioMode(val key: String) {

@@ -3,6 +3,7 @@ package com.naturasonic.app.data.repository
 import com.naturasonic.app.data.local.dao.AudioProfileDao
 import com.naturasonic.app.data.local.entity.AudioMode
 import com.naturasonic.app.data.local.entity.AudioProfile
+import com.naturasonic.app.sync.SyncManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -11,7 +12,8 @@ import javax.inject.Singleton
 
 @Singleton
 class AudioProfileRepository @Inject constructor(
-    private val dao: AudioProfileDao
+    private val dao: AudioProfileDao,
+    private val syncManager: SyncManager
 ) {
 
     fun getAllProfiles(): Flow<List<AudioProfile>> = dao.getAllProfiles()
@@ -24,15 +26,29 @@ class AudioProfileRepository @Inject constructor(
 
     suspend fun getById(id: Long): AudioProfile? = dao.getById(id)
 
-    suspend fun save(profile: AudioProfile): Long = dao.insert(profile)
+    suspend fun save(profile: AudioProfile): Long {
+        val id = dao.insert(
+            profile.copy(isSynced = false, lastModified = System.currentTimeMillis())
+        )
+        syncManager.scheduleSync()
+        return id
+    }
 
-    suspend fun update(profile: AudioProfile) = dao.update(profile)
+    suspend fun update(profile: AudioProfile) {
+        dao.update(
+            profile.copy(isSynced = false, lastModified = System.currentTimeMillis())
+        )
+        syncManager.scheduleSync()
+    }
 
     suspend fun delete(profile: AudioProfile) = dao.delete(profile)
 
     suspend fun setAsDefault(profile: AudioProfile) {
         dao.clearDefaultForMode(profile.mode)
-        dao.update(profile.copy(isDefault = true))
+        dao.update(
+            profile.copy(isDefault = true, isSynced = false, lastModified = System.currentTimeMillis())
+        )
+        syncManager.scheduleSync()
     }
 
     suspend fun ensureDefaultProfiles() {
