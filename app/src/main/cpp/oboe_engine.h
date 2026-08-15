@@ -29,8 +29,9 @@ public:
     void setAmplification(float level);
     void setEqBands(const float* bands, int count);
     void setNoiseSuppressionEnabled(bool enabled);
+    void setNoiseGateMode(int mode);
     void setVolumeLimitDb(float limitDb);
-    void applyProfile(const float* bands, int count, float amplification, bool noiseSuppression);
+    void applyProfile(const float* bands, int count, float amplification, int noiseGateMode);
     void setOutputMuted(bool muted);
 
     std::vector<float> getLatestAudioBuffer();

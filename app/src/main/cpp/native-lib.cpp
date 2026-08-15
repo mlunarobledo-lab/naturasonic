@@ -78,6 +78,15 @@ Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetVolumeLimitDb(
 }
 
 JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetNoiseGateMode(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jint mode) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setNoiseGateMode(mode);
+    }
+}
+
+JNIEXPORT void JNICALL
 Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetOutputMuted(
         JNIEnv* env, jobject thiz, jlong engineHandle, jboolean muted) {
     auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
@@ -89,12 +98,12 @@ Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetOutputMuted(
 JNIEXPORT void JNICALL
 Java_com_naturasonic_app_audio_OboeAudioEngine_nativeApplyProfile(
         JNIEnv* env, jobject thiz, jlong engineHandle,
-        jfloatArray bands, jfloat amplification, jboolean noiseSuppression) {
+        jfloatArray bands, jfloat amplification, jint noiseGateMode) {
     auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
     if (eng && bands) {
         jsize len = env->GetArrayLength(bands);
         jfloat* data = env->GetFloatArrayElements(bands, nullptr);
-        eng->applyProfile(data, len, amplification, noiseSuppression == JNI_TRUE);
+        eng->applyProfile(data, len, amplification, noiseGateMode);
         env->ReleaseFloatArrayElements(bands, data, JNI_ABORT);
     }
 }

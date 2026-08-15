@@ -47,6 +47,10 @@ class UserPreferences @Inject constructor(
         prefs[KEY_ALERT_DETECTION] ?: true
     }
 
+    val noiseGateMode: Flow<Int> = dataStore.data.map { prefs ->
+        prefs[KEY_NOISE_GATE_MODE] ?: 0
+    }
+
     val selectedProfileId: Flow<Long> = dataStore.data.map { prefs ->
         prefs[KEY_SELECTED_PROFILE_ID]?.toLongOrNull() ?: -1L
     }
@@ -75,6 +79,10 @@ class UserPreferences @Inject constructor(
         dataStore.edit { it[KEY_ALERT_DETECTION] = enabled }
     }
 
+    suspend fun setNoiseGateMode(mode: Int) {
+        dataStore.edit { it[KEY_NOISE_GATE_MODE] = mode }
+    }
+
     suspend fun setSelectedProfileId(id: Long) {
         dataStore.edit { it[KEY_SELECTED_PROFILE_ID] = id.toString() }
     }
@@ -86,6 +94,7 @@ class UserPreferences @Inject constructor(
         private val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         private val KEY_DISCLAIMER_ACCEPTED = booleanPreferencesKey("disclaimer_accepted")
         private val KEY_ALERT_DETECTION = booleanPreferencesKey("alert_detection_enabled")
+        private val KEY_NOISE_GATE_MODE = intPreferencesKey("noise_gate_mode")
         private val KEY_SELECTED_PROFILE_ID = stringPreferencesKey("selected_profile_id")
     }
 }

@@ -16,8 +16,8 @@ void AudioProcessor::process(float* buffer, int numFrames) {
 
     applyAmplification(buffer, numFrames, snap.amplification);
 
-    if (snap.noiseSuppression) {
-        applyNoiseGate(buffer, numFrames);
+    if (snap.noiseGateMode != kNoiseGateOff) {
+        applyAdaptiveNoiseGate(buffer, numFrames, snap.noiseGateMode);
     }
 
     applyEqualizer(buffer, numFrames, snap);
@@ -51,17 +51,21 @@ void AudioProcessor::setEqBands(const float* bands, int count) {
 }
 
 void AudioProcessor::setNoiseSuppressionEnabled(bool enabled) {
+    setNoiseGateMode(enabled ? kNoiseGateVoiceFocus : kNoiseGateOff);
+}
+
+void AudioProcessor::setNoiseGateMode(int mode) {
     std::lock_guard<std::mutex> lock(eqWriteMutex_);
     int readIdx = activeEqIndex_.load(std::memory_order_acquire);
     int writeIdx = 1 - readIdx;
 
     eqSnapshots_[writeIdx] = eqSnapshots_[readIdx];
-    eqSnapshots_[writeIdx].noiseSuppression = enabled;
+    eqSnapshots_[writeIdx].noiseGateMode = std::clamp(mode, 0, 2);
 
     activeEqIndex_.store(writeIdx, std::memory_order_release);
 }
 
-void AudioProcessor::applyProfile(const float* bands, int count, float amplification, bool noiseSuppression) {
+void AudioProcessor::applyProfile(const float* bands, int count, float amplification, int noiseGateMode) {
     std::lock_guard<std::mutex> lock(eqWriteMutex_);
     int writeIdx = 1 - activeEqIndex_.load(std::memory_order_acquire);
 
@@ -72,7 +76,7 @@ void AudioProcessor::applyProfile(const float* bands, int count, float amplifica
     }
     computeEqCoefficients(snap);
     snap.amplification = std::clamp(amplification, 0.0f, 1.0f);
-    snap.noiseSuppression = noiseSuppression;
+    snap.noiseGateMode = std::clamp(noiseGateMode, 0, 2);
 
     activeEqIndex_.store(writeIdx, std::memory_order_release);
 }
@@ -95,18 +99,42 @@ void AudioProcessor::applyEqualizer(float* buffer, int numFrames, const EqSnapsh
     }
 }
 
-void AudioProcessor::applyNoiseGate(float* buffer, int numFrames) {
+void AudioProcessor::applyAdaptiveNoiseGate(float* buffer, int numFrames, int mode) {
+    float voiceRatio, minAtten, attackCoeff, releaseCoeff, floorAdapt;
+    if (mode == kNoiseGateAggressive) {
+        voiceRatio = 2.5f;
+        minAtten = 0.02f;
+        attackCoeff = 0.05f;
+        releaseCoeff = 0.999f;
+        floorAdapt = 0.002f;
+    } else {
+        voiceRatio = 4.0f;
+        minAtten = 0.15f;
+        attackCoeff = 0.02f;
+        releaseCoeff = 0.9995f;
+        floorAdapt = 0.001f;
+    }
+
     for (int i = 0; i < numFrames; i++) {
         float absVal = std::abs(buffer[i]);
-        if (absVal > noiseGateEnvelope_) {
-            noiseGateEnvelope_ = absVal;
+
+        ngSignalLevel_ = ngSignalLevel_ * 0.999f + absVal * 0.001f;
+
+        if (ngSignalLevel_ < ngNoiseFloor_ * 2.0f) {
+            ngNoiseFloor_ = ngNoiseFloor_ * (1.0f - floorAdapt) + ngSignalLevel_ * floorAdapt;
+        }
+        ngNoiseFloor_ = std::max(ngNoiseFloor_, 1e-7f);
+
+        float targetGain = (ngSignalLevel_ > ngNoiseFloor_ * voiceRatio) ? 1.0f : minAtten;
+
+        if (targetGain > ngGateGain_) {
+            ngGateGain_ += (targetGain - ngGateGain_) * attackCoeff;
         } else {
-            noiseGateEnvelope_ *= kNoiseGateRelease;
+            ngGateGain_ *= releaseCoeff;
+            if (ngGateGain_ < minAtten) ngGateGain_ = minAtten;
         }
 
-        if (noiseGateEnvelope_ < kNoiseGateThreshold) {
-            buffer[i] *= noiseGateEnvelope_ / kNoiseGateThreshold;
-        }
+        buffer[i] *= ngGateGain_;
     }
 }
 

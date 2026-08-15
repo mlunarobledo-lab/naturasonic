@@ -13,7 +13,8 @@ public:
     void setAmplification(float level);
     void setEqBands(const float* bands, int count);
     void setNoiseSuppressionEnabled(bool enabled);
-    void applyProfile(const float* bands, int count, float amplification, bool noiseSuppression);
+    void setNoiseGateMode(int mode);
+    void applyProfile(const float* bands, int count, float amplification, int noiseGateMode);
 
 private:
     static constexpr int kMaxEqBands = 10;
@@ -28,17 +29,21 @@ private:
         float a1 = 0, a2 = 0;
     };
 
+    static constexpr int kNoiseGateOff = 0;
+    static constexpr int kNoiseGateVoiceFocus = 1;
+    static constexpr int kNoiseGateAggressive = 2;
+
     struct EqSnapshot {
         float gains[kMaxEqBands] = {};
         BiquadCoeffs coeffs[kMaxEqBands] = {};
         int bandCount = 5;
         float amplification = 0.5f;
-        bool noiseSuppression = false;
+        int noiseGateMode = kNoiseGateOff;
     };
 
     void applyAmplification(float* buffer, int numFrames, float level);
     void applyEqualizer(float* buffer, int numFrames, const EqSnapshot& snap);
-    void applyNoiseGate(float* buffer, int numFrames);
+    void applyAdaptiveNoiseGate(float* buffer, int numFrames, int mode);
 
     EqSnapshot eqSnapshots_[2];
     std::atomic<int> activeEqIndex_{0};
@@ -49,9 +54,9 @@ private:
     void computeEqCoefficients(EqSnapshot& snap);
     float processBiquad(float input, const BiquadCoeffs& c, BiquadState& s);
 
-    static constexpr float kNoiseGateThreshold = 0.002f;
-    static constexpr float kNoiseGateRelease = 0.995f;
-    float noiseGateEnvelope_ = 0.0f;
+    float ngSignalLevel_ = 0.0f;
+    float ngNoiseFloor_ = 0.001f;
+    float ngGateGain_ = 1.0f;
 
     static constexpr int kSampleRate = 48000;
 

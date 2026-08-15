@@ -15,6 +15,7 @@ import com.naturasonic.app.ui.screens.onboarding.OnboardingScreen
 import com.naturasonic.app.ui.screens.onboarding.OnboardingViewModel
 import com.naturasonic.app.ui.screens.settings.SettingsScreen
 import com.naturasonic.app.ui.screens.settings.SettingsViewModel
+import com.naturasonic.app.ui.screens.anc.AncControlScreen
 import com.naturasonic.app.ui.screens.audiogram.AudiogramTestScreen
 import com.naturasonic.app.ui.screens.transcription.TranscriptionScreen
 import com.naturasonic.app.ui.screens.transcription.TranscriptionViewModel
@@ -27,6 +28,7 @@ object Routes {
     const val ALERT_HISTORY = "alert_history"
     const val PERFORMANCE = "performance"
     const val AUDIOGRAM_TEST = "audiogram_test"
+    const val ANC_CONTROL = "anc_control"
 }
 
 @Composable
@@ -80,6 +82,9 @@ fun NaturaSonicNavHost() {
                 },
                 onNavigateToAudiogram = {
                     navController.navigate(Routes.AUDIOGRAM_TEST)
+                },
+                onNavigateToAnc = {
+                    navController.navigate(Routes.ANC_CONTROL)
                 }
             )
         }
@@ -98,6 +103,12 @@ fun NaturaSonicNavHost() {
 
         composable(Routes.AUDIOGRAM_TEST) {
             AudiogramTestScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.ANC_CONTROL) {
+            AncControlScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

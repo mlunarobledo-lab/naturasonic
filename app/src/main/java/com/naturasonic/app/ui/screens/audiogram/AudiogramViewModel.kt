@@ -178,7 +178,7 @@ class AudiogramViewModel @Inject constructor(
     fun applyToEqualizer() {
         val state = _uiState.value
         val gains = AudiogramCalibration.computeEqGains(state.leftThresholds, state.rightThresholds)
-        audioEngine.applyProfile(gains, 0.6f, noiseSuppression = true)
+        audioEngine.applyProfile(gains, 0.6f, noiseGateMode = 1)
         _uiState.value = state.copy(applied = true)
     }
 

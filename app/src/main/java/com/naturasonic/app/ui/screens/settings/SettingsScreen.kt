@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.HearingDisabled
+import androidx.compose.material.icons.filled.NoiseAware
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
@@ -63,6 +64,7 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToPerformance: () -> Unit = {},
     onNavigateToAudiogram: () -> Unit = {},
+    onNavigateToAnc: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -167,6 +169,14 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.height(24.dp))
             }
+
+            TextButton(onClick = onNavigateToAnc) {
+                Icon(Icons.Default.NoiseAware, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Control de ruido")
+            }
+
+            Spacer(Modifier.height(8.dp))
 
             TextButton(onClick = onNavigateToAudiogram) {
                 Icon(Icons.Default.HearingDisabled, contentDescription = null)

@@ -73,12 +73,16 @@ void NaturaSonicEngine::setNoiseSuppressionEnabled(bool enabled) {
     processor_.setNoiseSuppressionEnabled(enabled);
 }
 
+void NaturaSonicEngine::setNoiseGateMode(int mode) {
+    processor_.setNoiseGateMode(mode);
+}
+
 void NaturaSonicEngine::setVolumeLimitDb(float limitDb) {
     limiter_.setLimitDb(limitDb);
 }
 
-void NaturaSonicEngine::applyProfile(const float* bands, int count, float amplification, bool noiseSuppression) {
-    processor_.applyProfile(bands, count, amplification, noiseSuppression);
+void NaturaSonicEngine::applyProfile(const float* bands, int count, float amplification, int noiseGateMode) {
+    processor_.applyProfile(bands, count, amplification, noiseGateMode);
 }
 
 void NaturaSonicEngine::setOutputMuted(bool muted) {

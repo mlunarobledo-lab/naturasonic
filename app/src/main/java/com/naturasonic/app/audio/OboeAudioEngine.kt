@@ -46,6 +46,12 @@ class OboeAudioEngine @Inject constructor() {
         }
     }
 
+    fun setNoiseGateMode(mode: Int) {
+        if (engineHandle != 0L) {
+            nativeSetNoiseGateMode(engineHandle, mode.coerceIn(0, 2))
+        }
+    }
+
     fun setVolumeLimitDb(limitDb: Float) {
         if (engineHandle != 0L) {
             nativeSetVolumeLimitDb(engineHandle, limitDb)
@@ -58,9 +64,9 @@ class OboeAudioEngine @Inject constructor() {
         }
     }
 
-    fun applyProfile(bands: FloatArray, amplification: Float, noiseSuppression: Boolean) {
+    fun applyProfile(bands: FloatArray, amplification: Float, noiseGateMode: Int) {
         if (engineHandle != 0L) {
-            nativeApplyProfile(engineHandle, bands, amplification.coerceIn(0f, 1f), noiseSuppression)
+            nativeApplyProfile(engineHandle, bands, amplification.coerceIn(0f, 1f), noiseGateMode.coerceIn(0, 2))
         }
     }
 
@@ -92,9 +98,10 @@ class OboeAudioEngine @Inject constructor() {
     private external fun nativeSetAmplification(engineHandle: Long, level: Float)
     private external fun nativeSetEqBands(engineHandle: Long, bands: FloatArray)
     private external fun nativeSetNoiseSuppressionEnabled(engineHandle: Long, enabled: Boolean)
+    private external fun nativeSetNoiseGateMode(engineHandle: Long, mode: Int)
     private external fun nativeSetVolumeLimitDb(engineHandle: Long, limitDb: Float)
     private external fun nativeSetOutputMuted(engineHandle: Long, muted: Boolean)
-    private external fun nativeApplyProfile(engineHandle: Long, bands: FloatArray, amplification: Float, noiseSuppression: Boolean)
+    private external fun nativeApplyProfile(engineHandle: Long, bands: FloatArray, amplification: Float, noiseGateMode: Int)
     private external fun nativeGetAudioBuffer(engineHandle: Long): FloatArray?
     private external fun nativeGetYamnetAudioBuffer(engineHandle: Long): FloatArray?
     private external fun nativeGetLatencyStats(engineHandle: Long): FloatArray?
