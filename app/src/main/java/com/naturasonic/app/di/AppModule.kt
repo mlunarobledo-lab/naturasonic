@@ -6,6 +6,7 @@ import androidx.work.WorkManager
 import com.naturasonic.app.data.local.AppDatabase
 import com.naturasonic.app.data.local.dao.AlertEventDao
 import com.naturasonic.app.data.local.dao.AudioProfileDao
+import com.naturasonic.app.data.local.dao.AudiogramDao
 import com.naturasonic.app.data.local.dao.TranscriptionDao
 import com.naturasonic.app.sync.CloudSyncApi
 import com.naturasonic.app.sync.StubCloudSyncApi
@@ -28,7 +29,7 @@ object AppModule {
             AppDatabase::class.java,
             "naturasonic.db"
         )
-            .addMigrations(AppDatabase.MIGRATION_1_2)
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
             .build()
 
     @Provides
@@ -39,6 +40,9 @@ object AppModule {
 
     @Provides
     fun provideAlertEventDao(db: AppDatabase): AlertEventDao = db.alertEventDao()
+
+    @Provides
+    fun provideAudiogramDao(db: AppDatabase): AudiogramDao = db.audiogramDao()
 
     @Provides
     @Singleton
