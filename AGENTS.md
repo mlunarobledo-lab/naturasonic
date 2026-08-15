@@ -214,11 +214,6 @@ Error -> Fix -> Documentar en PRP -> ¿Cumple algun criterio? -> Si: a AGENTS.md
 | Este archivo (AGENTS.md) | Solo si cumple los 5 criterios del filtro discriminativo |
 | Auto memory de Claude | Automatico — tu no decides aqui, Claude lo hace |
 
-**2026-08-13: Double-buffer copy-modify-swap como patrón canónico para parámetros DSP thread-safe**
-- **Error**: `setEqBands` escribía gains y coeficientes biquad en arrays planos mientras `applyEqualizer` los leía en `onAudioReady` — data race con posibilidad de tear (coeficientes parciales). Los setters individuales (`setAmplification`, `setNoiseSuppressionEnabled`) eran `std::atomic` independientes, permitiendo estados intermedios inconsistentes entre parámetros.
-- **Fix**: `EqSnapshot` struct agrupa TODOS los parámetros DSP (gains, coeffs, bandCount, amplification, noiseSuppression). Doble buffer `eqSnapshots_[2]` con `std::atomic<int> activeEqIndex_`. Lectores (audio thread): un solo `load(memory_order_acquire)` → referencia const al snapshot completo. Escritores (JNI thread): `lock_guard<mutex>` → copian snapshot activo al inactivo → modifican → `store(writeIdx, memory_order_release)`. `applyProfile()` escribe directo sin copiar (todos los campos se sobreescriben). `BiquadState` permanece fuera del snapshot (estado continuo IIR, no se duplica).
-- **Aplicar en**: Cualquier futuro parámetro DSP que se controle desde Kotlin (nuevos filtros, compresores, limitadores dinámicos, crossover). Patrón: agregar el campo al `EqSnapshot`, crear setter copy-modify-swap, extender `applyProfile` si aplica. NUNCA usar `std::atomic` independientes para parámetros que deben ser coherentes entre sí.
-
 ---
 
 <!-- PRAXIS:PROJECT_CONTEXT_START -->
@@ -412,15 +407,24 @@ npx tsc --noEmit     # Verificar tipos
 - **Fix**: Ring buffer dedicado (`yamnetBuffer_`, 48000 float, 1s a 48kHz) alimentado desde `onAudioReady` con mutex propio. JNI getter devuelve el buffer completo en orden cronológico. La decimación 3:1 se hace en Kotlin (consumidor ligero) no en C++.
 - **Aplicar en**: Cualquier futuro consumidor Kotlin que necesite una ventana de audio mayor que un frame de callback (clasificadores ML, análisis espectral, grabación). Patrón: ring buffer C++ con mutex dedicado + JNI getter + resampling en la capa del consumidor.
 
+**2026-08-13: Double-buffer copy-modify-swap como patrón canónico para parámetros DSP thread-safe**
+- **Error**: `setEqBands` escribía gains y coeficientes biquad en arrays planos mientras `applyEqualizer` los leía en `onAudioReady` — data race con posibilidad de tear (coeficientes parciales). Los setters individuales (`setAmplification`, `setNoiseSuppressionEnabled`) eran `std::atomic` independientes, permitiendo estados intermedios inconsistentes entre parámetros.
+- **Fix**: `EqSnapshot` struct agrupa TODOS los parámetros DSP (gains, coeffs, bandCount, amplification, noiseSuppression). Doble buffer `eqSnapshots_[2]` con `std::atomic<int> activeEqIndex_`. Lectores (audio thread): un solo `load(memory_order_acquire)` → referencia const al snapshot completo. Escritores (JNI thread): `lock_guard<mutex>` → copian snapshot activo al inactivo → modifican → `store(writeIdx, memory_order_release)`. `applyProfile()` escribe directo sin copiar (todos los campos se sobreescriben). `BiquadState` permanece fuera del snapshot (estado continuo IIR, no se duplica).
+- **Aplicar en**: Cualquier futuro parámetro DSP que se controle desde Kotlin (nuevos filtros, compresores, limitadores dinámicos, crossover). Patrón: agregar el campo al `EqSnapshot`, crear setter copy-modify-swap, extender `applyProfile` si aplica. NUNCA usar `std::atomic` independientes para parámetros que deben ser coherentes entre sí.
+
 ---
 
 ## Checkpoint de estado (2026-08-14)
 
-**PRPs cerrados**: PRP-001 (scaffold Fases 0-7), PRP-002 (whisper.cpp FetchContent), PRP-003 (JNI bridge unificado), PRP-004 (GgmlModelManager + assets), PRP-005 (YAMNet/TFLite detección de alertas), PRP-006 (Room persistence — perfiles EQ + configuraciones), PRP-007 (Pipeline Avanzado de Modos de Escucha — enlace reactivo Room ↔ Oboe con double-buffer atómico), PRP-008 (Historial de Alertas Críticas — UI de consulta con filtros reactivos en Compose).
+**PRPs cerrados**: PRP-001 (scaffold Fases 0-7), PRP-002 (whisper.cpp FetchContent), PRP-003 (JNI bridge unificado), PRP-004 (GgmlModelManager + assets), PRP-005 (YAMNet/TFLite detección de alertas), PRP-006 (Room persistence — perfiles EQ + configuraciones), PRP-007 (Pipeline Avanzado de Modos de Escucha — enlace reactivo Room ↔ Oboe con double-buffer atómico), PRP-008 (Historial de Alertas Críticas — UI de consulta con filtros reactivos en Compose), PRP-009 (Performance Profiling — ATrace/chrono C++ + PerformanceTracker Kotlin + pantalla de métricas), PRP-010 (Background Alerts — notificaciones locales IMPORTANCE_HIGH + 7 patrones de vibración por clase), PRP-011 (Cloud Backup Offline-First — Room v2 migration + WorkManager + CloudSyncApi stub + dirty tracking en AudioProfileRepository).
 
 **Pipeline nativo**: Oboe 48kHz mono (onAudioReady) → AudioProcessor (double-buffer EqSnapshot con amplification + NS + EQ atómicos) → VolumeLimiter → latestBuffer_ (frame actual) + yamnetBuffer_ (ring buffer 1s) + WhisperBridge::feedAudio(). WhisperBridge: decimación 3:1 C++, thread dedicado, whisper_full segmentos 10s → texto via JNI polling → StateFlow → Compose. YAMNet: yamnetBuffer_ → JNI → decimación 3:1 Kotlin → AudioClassifier (TFLite Task Audio) → DetectedAlert StateFlow → SoundAlertCard Compose (animada, auto-dismiss 5s). Librería única `libnaturasonic.so`. Modelos: GgmlModelManager (GGML assets) + YamnetModelManager (TFLite assets).
 
-**Persistencia**: Room database v1 (`naturasonic.db`) con 3 entities (AudioProfile, TranscriptionEntry, AlertEvent). AudioProfileRepository con CRUD + seed automático de 4 perfiles default (uno por AudioMode). Observación reactiva `combine(selectedProfileId, currentMode).debounce(30)` en AudioService reemplaza one-shot restore. AudioModeManager usa `audioEngine.applyProfile()` atómico (1 JNI call en vez de 3). UserPreferences (DataStore) para settings simples (modo actual, volumen, selectedProfileId, alertas).
+**Instrumentación de rendimiento**: ATrace `"NaturaSonic::DSP"` en `onAudioReady` (visible en Perfetto). `LatencyStats` struct C++ con array preasignado de 256 frames (min/max/avg µs) expuesto vía JNI. `PerformanceTracker` singleton Kotlin con StateFlows de DspStats, DetectionStats (JNI copy + resample + classify ms), MemoryStats (native/Java heap MB). Pantalla de métricas accesible desde Settings → Rendimiento.
+
+**Persistencia**: Room database v2 (`naturasonic.db`) con 3 entities (AudioProfile con isSynced+lastModified, TranscriptionEntry, AlertEvent). Migration v1→v2 con ALTER TABLE. AudioProfileRepository con CRUD + dirty tracking (isSynced=false + lastModified en cada write) + SyncManager.scheduleSync(). Seed automático de 4 perfiles default (uno por AudioMode). Observación reactiva `combine(selectedProfileId, currentMode).debounce(30)` en AudioService reemplaza one-shot restore. AudioModeManager usa `audioEngine.applyProfile()` atómico (1 JNI call en vez de 3). UserPreferences (DataStore) para settings simples (modo actual, volumen, selectedProfileId, alertas).
+
+**Cloud Sync**: Arquitectura offline-first. CloudSyncApi interface + StubCloudSyncApi (log-only, backend real pendiente). ProfileSyncWorker (@HiltWorker) consulta perfiles dirty vía DAO y sube vía CloudSyncApi. SyncManager encola OneTimeWorkRequest con NetworkType.CONNECTED. NaturaSonicApp implementa Configuration.Provider con HiltWorkerFactory. Para enchufar backend real: swap single binding en AppModule (provideCloudSyncApi).
 
 ---
 

@@ -388,4 +388,4 @@ Agent-First. El usuario dicta el objetivo; TÚ ejecutas a la perfección
 
 **Este archivo es la fuente de verdad para el desarrollo en este proyecto. Todas las decisiones de código deben alinearse con estos principios**
 
-<!-- px:213d0d2d759974d5 -->
+<!-- px:8beecf4462eabf43 -->
