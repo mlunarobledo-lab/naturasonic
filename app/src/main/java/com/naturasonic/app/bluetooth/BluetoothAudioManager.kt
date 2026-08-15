@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -34,6 +35,11 @@ class BluetoothAudioManager @Inject constructor(
 
     private val _compatibility = MutableStateFlow(BluetoothCompatibility.NOT_SUPPORTED)
     val compatibility: StateFlow<BluetoothCompatibility> = _compatibility.asStateFlow()
+
+    private val _connectionState = MutableStateFlow<BluetoothConnectionState>(BluetoothConnectionState.NoDevice)
+    val connectionState: StateFlow<BluetoothConnectionState> = _connectionState.asStateFlow()
+
+    private var connectionReceiver: BroadcastReceiver? = null
 
     fun checkCompatibility(): BluetoothCompatibility {
         val adapter = bluetoothAdapter ?: return BluetoothCompatibility.NOT_SUPPORTED
@@ -72,22 +78,99 @@ class BluetoothAudioManager @Inject constructor(
         }
 
         _connectedDevices.value = devices
+
+        val connected = devices.filter { it.isConnected }
+        if (connected.isNotEmpty()) {
+            _connectionState.value = BluetoothConnectionState.Connected(connected.first())
+        } else if (adapter.isEnabled) {
+            _connectionState.value = BluetoothConnectionState.NoDevice
+        } else {
+            _connectionState.value = BluetoothConnectionState.BluetoothOff
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun startMonitoring() {
+        if (connectionReceiver != null) return
+
+        refreshConnectedDevices()
+
+        connectionReceiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                when (intent?.action) {
+                    BluetoothDevice.ACTION_ACL_CONNECTED -> {
+                        val device = extractDevice(intent)
+                        if (device != null) {
+                            val info = device.toDeviceInfo(isConnected = true)
+                            Log.i(TAG, "BT connected: ${info.name} (${info.type})")
+                            _connectionState.value = BluetoothConnectionState.Connected(info)
+                            refreshConnectedDevices()
+                        }
+                    }
+                    BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                        val device = extractDevice(intent)
+                        if (device != null) {
+                            val info = device.toDeviceInfo(isConnected = false)
+                            Log.w(TAG, "BT disconnected: ${info.name} (${info.type})")
+                            val remaining = _connectedDevices.value
+                                .filter { it.address != info.address && it.isConnected }
+                            if (remaining.isNotEmpty()) {
+                                _connectionState.value = BluetoothConnectionState.Connected(remaining.first())
+                            } else {
+                                _connectionState.value = BluetoothConnectionState.Disconnected(info)
+                            }
+                            refreshConnectedDevices()
+                        }
+                    }
+                    BluetoothAdapter.ACTION_STATE_CHANGED -> {
+                        val state = intent.getIntExtra(
+                            BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR
+                        )
+                        when (state) {
+                            BluetoothAdapter.STATE_OFF -> {
+                                Log.w(TAG, "Bluetooth adapter turned OFF")
+                                _connectionState.value = BluetoothConnectionState.BluetoothOff
+                                _connectedDevices.value = emptyList()
+                            }
+                            BluetoothAdapter.STATE_ON -> {
+                                Log.i(TAG, "Bluetooth adapter turned ON")
+                                refreshConnectedDevices()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        val filter = IntentFilter().apply {
+            addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
+            addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
+            addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(connectionReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            context.registerReceiver(connectionReceiver, filter)
+        }
+        Log.i(TAG, "BT connection monitoring started")
+    }
+
+    fun stopMonitoring() {
+        connectionReceiver?.let {
+            try {
+                context.unregisterReceiver(it)
+            } catch (_: IllegalArgumentException) { }
+            connectionReceiver = null
+            Log.i(TAG, "BT connection monitoring stopped")
+        }
     }
 
     fun observeConnectionChanges(): Flow<BluetoothDeviceInfo> = callbackFlow {
         val receiver = object : BroadcastReceiver() {
             @SuppressLint("MissingPermission")
             override fun onReceive(ctx: Context?, intent: Intent?) {
-                val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    intent?.getParcelableExtra(
-                        BluetoothDevice.EXTRA_DEVICE,
-                        BluetoothDevice::class.java
-                    )
-                } else {
-                    @Suppress("DEPRECATION")
-                    intent?.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                }
-
+                val device = extractDevice(intent)
                 device?.let {
                     val isConnected = intent?.action == BluetoothDevice.ACTION_ACL_CONNECTED
                     trySend(it.toDeviceInfo(isConnected))
@@ -103,6 +186,19 @@ class BluetoothAudioManager @Inject constructor(
         context.registerReceiver(receiver, filter)
 
         awaitClose { context.unregisterReceiver(receiver) }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun extractDevice(intent: Intent?): BluetoothDevice? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent?.getParcelableExtra(
+                BluetoothDevice.EXTRA_DEVICE,
+                BluetoothDevice::class.java
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            intent?.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+        }
     }
 
     private fun isAshaSupported(): Boolean {
@@ -136,5 +232,9 @@ class BluetoothAudioManager @Inject constructor(
             type = btType,
             isConnected = isConnected
         )
+    }
+
+    companion object {
+        private const val TAG = "BTAudioManager"
     }
 }

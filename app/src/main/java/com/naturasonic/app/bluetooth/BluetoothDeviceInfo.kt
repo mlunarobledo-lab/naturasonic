@@ -20,3 +20,10 @@ enum class BluetoothCompatibility {
     CLASSIC_ONLY,
     NOT_SUPPORTED
 }
+
+sealed class BluetoothConnectionState {
+    data class Connected(val device: BluetoothDeviceInfo) : BluetoothConnectionState()
+    data class Disconnected(val device: BluetoothDeviceInfo) : BluetoothConnectionState()
+    data object BluetoothOff : BluetoothConnectionState()
+    data object NoDevice : BluetoothConnectionState()
+}

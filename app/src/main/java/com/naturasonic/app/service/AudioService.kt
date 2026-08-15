@@ -16,6 +16,8 @@ import com.naturasonic.app.audio.AudioModeManager
 import com.naturasonic.app.audio.AudioSessionManager
 import com.naturasonic.app.audio.OboeAudioEngine
 import com.naturasonic.app.audio.VolumeProtection
+import com.naturasonic.app.bluetooth.BluetoothAudioManager
+import com.naturasonic.app.bluetooth.BluetoothConnectionState
 import com.naturasonic.app.data.local.entity.AudioMode
 import com.naturasonic.app.data.preferences.UserPreferences
 import com.naturasonic.app.data.repository.AudioProfileRepository
@@ -45,12 +47,14 @@ class AudioService : Service() {
     @Inject lateinit var userPreferences: UserPreferences
     @Inject lateinit var modeManager: AudioModeManager
     @Inject lateinit var performanceTracker: PerformanceTracker
+    @Inject lateinit var bluetoothAudioManager: BluetoothAudioManager
 
     private val binder = AudioBinder()
     private val serviceScope = CoroutineScope(Dispatchers.Default + Job())
     private var volumeTickJob: Job? = null
     private var detectionJob: Job? = null
     private var profileObserverJob: Job? = null
+    private var btMonitorJob: Job? = null
 
     inner class AudioBinder : Binder() {
         fun getService(): AudioService = this@AudioService
@@ -75,6 +79,7 @@ class AudioService : Service() {
             startVolumeProtectionTick()
             startDetectionLoop()
             startProfileObserver()
+            startBluetoothMonitor()
         }
     }
 
@@ -111,6 +116,8 @@ class AudioService : Service() {
     }
 
     private fun stopAudio() {
+        btMonitorJob?.cancel()
+        bluetoothAudioManager.stopMonitoring()
         profileObserverJob?.cancel()
         detectionJob?.cancel()
         volumeTickJob?.cancel()
@@ -161,6 +168,28 @@ class AudioService : Service() {
         }
     }
 
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
+    private fun startBluetoothMonitor() {
+        bluetoothAudioManager.startMonitoring()
+        btMonitorJob?.cancel()
+        btMonitorJob = serviceScope.launch {
+            bluetoothAudioManager.connectionState
+                .debounce(200)
+                .collect { state ->
+                    when (state) {
+                        is BluetoothConnectionState.Connected -> {
+                            audioEngine.setOutputMuted(false)
+                        }
+                        is BluetoothConnectionState.Disconnected,
+                        is BluetoothConnectionState.BluetoothOff -> {
+                            audioEngine.setOutputMuted(true)
+                        }
+                        is BluetoothConnectionState.NoDevice -> { }
+                    }
+                }
+        }
+    }
+
     private fun startForeground() {
         val pendingIntent = PendingIntent.getActivity(
             this, 0,
@@ -187,6 +216,7 @@ class AudioService : Service() {
     }
 
     override fun onDestroy() {
+        bluetoothAudioManager.stopMonitoring()
         serviceScope.cancel()
         audioEngine.destroy()
         audioSessionManager.release()

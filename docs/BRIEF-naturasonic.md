@@ -138,7 +138,7 @@ He investigado extensivamente el ecosistema de audio en Android y las herramient
 - **Estado**: COMPLETADO
 - **Objetivo high-level**: Implementar descubrimiento, emparejamiento y streaming de audio via Bluetooth LE Audio y ASHA protocol. Incluir pantalla de verificación de compatibilidad de hardware antes del primer uso.
 - **Depende de**: Fase 1
-- **Aprendizajes para fases siguientes**: La detección de LE Audio requiere API 33+ (`BluetoothAdapter.isLeAudioSupported`). ASHA se detecta vía `BluetoothProfile.HEARING_AID`. Ambos se verifican en onboarding para informar al usuario antes de usar la app.
+- **Aprendizajes para fases siguientes**: La detección de LE Audio requiere API 33+ (`BluetoothAdapter.isLeAudioSupported`). ASHA se detecta vía `BluetoothProfile.HEARING_AID`. Ambos se verifican en onboarding para informar al usuario antes de usar la app. PRP-012 (2026-08-15): BluetoothAudioManager robustecido con `connectionState` StateFlow reactivo (Connected/Disconnected/BluetoothOff/NoDevice), monitoreo de ACL + ACTION_STATE_CHANGED, y output mute atómico en C++ (`std::atomic<bool>` en `onAudioReady`) que silencia la salida en < 1 frame ante desconexión BT. AudioService observa el StateFlow con debounce 200ms y ejecuta mute/unmute sin intervención del usuario. WhisperBridge y YAMNet siguen operando con output muteado. BroadcastReceiver en API 33+ requiere flag `RECEIVER_NOT_EXPORTED`.
 - **Ajustes a la Directiva de Stack**: —
 - **Iniciada**: 2026-08-03
 - **Completada**: 2026-08-03

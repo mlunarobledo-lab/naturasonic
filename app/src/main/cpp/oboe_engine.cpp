@@ -81,6 +81,11 @@ void NaturaSonicEngine::applyProfile(const float* bands, int count, float amplif
     processor_.applyProfile(bands, count, amplification, noiseSuppression);
 }
 
+void NaturaSonicEngine::setOutputMuted(bool muted) {
+    outputMuted_.store(muted, std::memory_order_relaxed);
+    LOGI("Output muted: %s", muted ? "true" : "false");
+}
+
 std::vector<float> NaturaSonicEngine::getLatestAudioBuffer() {
     std::lock_guard<std::mutex> lock(bufferMutex_);
     return latestBuffer_;
@@ -130,8 +135,12 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
                 latencyWritePos_++;
                 totalFrameCount_.fetch_add(1, std::memory_order_relaxed);
 
-                std::memcpy(output, captureBuffer_.data(),
-                           framesToProcess * kChannelCount * sizeof(float));
+                if (outputMuted_.load(std::memory_order_relaxed)) {
+                    std::memset(output, 0, framesToProcess * kChannelCount * sizeof(float));
+                } else {
+                    std::memcpy(output, captureBuffer_.data(),
+                               framesToProcess * kChannelCount * sizeof(float));
+                }
 
                 {
                     std::lock_guard<std::mutex> lock(bufferMutex_);

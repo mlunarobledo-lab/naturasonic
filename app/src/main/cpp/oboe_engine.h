@@ -31,6 +31,7 @@ public:
     void setNoiseSuppressionEnabled(bool enabled);
     void setVolumeLimitDb(float limitDb);
     void applyProfile(const float* bands, int count, float amplification, bool noiseSuppression);
+    void setOutputMuted(bool muted);
 
     std::vector<float> getLatestAudioBuffer();
     std::vector<float> getYamnetAudioBuffer();
@@ -70,6 +71,7 @@ private:
     std::mutex yamnetMutex_;
 
     std::atomic<bool> running_{false};
+    std::atomic<bool> outputMuted_{false};
 
     static constexpr int kLatencyWindowSize = 256;
     float latencyHistoryUs_[kLatencyWindowSize] = {};

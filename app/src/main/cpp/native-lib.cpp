@@ -78,6 +78,15 @@ Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetVolumeLimitDb(
 }
 
 JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetOutputMuted(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jboolean muted) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setOutputMuted(muted == JNI_TRUE);
+    }
+}
+
+JNIEXPORT void JNICALL
 Java_com_naturasonic_app_audio_OboeAudioEngine_nativeApplyProfile(
         JNIEnv* env, jobject thiz, jlong engineHandle,
         jfloatArray bands, jfloat amplification, jboolean noiseSuppression) {
