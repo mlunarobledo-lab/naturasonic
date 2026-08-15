@@ -51,6 +51,18 @@ class UserPreferences @Inject constructor(
         prefs[KEY_NOISE_GATE_MODE] ?: 0
     }
 
+    val ecoModeEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_ECO_MODE_ENABLED] ?: false
+    }
+
+    val ecoModeAutoActivate: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_ECO_MODE_AUTO] ?: true
+    }
+
+    val ecoModeThreshold: Flow<Int> = dataStore.data.map { prefs ->
+        prefs[KEY_ECO_MODE_THRESHOLD] ?: 20
+    }
+
     val selectedProfileId: Flow<Long> = dataStore.data.map { prefs ->
         prefs[KEY_SELECTED_PROFILE_ID]?.toLongOrNull() ?: -1L
     }
@@ -83,6 +95,18 @@ class UserPreferences @Inject constructor(
         dataStore.edit { it[KEY_NOISE_GATE_MODE] = mode }
     }
 
+    suspend fun setEcoModeEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_ECO_MODE_ENABLED] = enabled }
+    }
+
+    suspend fun setEcoModeAutoActivate(enabled: Boolean) {
+        dataStore.edit { it[KEY_ECO_MODE_AUTO] = enabled }
+    }
+
+    suspend fun setEcoModeThreshold(threshold: Int) {
+        dataStore.edit { it[KEY_ECO_MODE_THRESHOLD] = threshold.coerceIn(5, 50) }
+    }
+
     suspend fun setSelectedProfileId(id: Long) {
         dataStore.edit { it[KEY_SELECTED_PROFILE_ID] = id.toString() }
     }
@@ -95,6 +119,9 @@ class UserPreferences @Inject constructor(
         private val KEY_DISCLAIMER_ACCEPTED = booleanPreferencesKey("disclaimer_accepted")
         private val KEY_ALERT_DETECTION = booleanPreferencesKey("alert_detection_enabled")
         private val KEY_NOISE_GATE_MODE = intPreferencesKey("noise_gate_mode")
+        private val KEY_ECO_MODE_ENABLED = booleanPreferencesKey("eco_mode_enabled")
+        private val KEY_ECO_MODE_AUTO = booleanPreferencesKey("eco_mode_auto_activate")
+        private val KEY_ECO_MODE_THRESHOLD = intPreferencesKey("eco_mode_threshold")
         private val KEY_SELECTED_PROFILE_ID = stringPreferencesKey("selected_profile_id")
     }
 }

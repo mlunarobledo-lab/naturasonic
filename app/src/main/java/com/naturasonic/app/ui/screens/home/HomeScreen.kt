@@ -25,6 +25,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BatteryAlert
+import androidx.compose.material.icons.filled.BatteryChargingFull
+import androidx.compose.material.icons.filled.BatteryFull
+import androidx.compose.material.icons.filled.BatteryStd
+import androidx.compose.material.icons.filled.Battery2Bar
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothDisabled
 import androidx.compose.material.icons.filled.Hearing
@@ -113,6 +118,41 @@ fun HomeScreen(
                     )
                 },
                 actions = {
+                    if (state.isEcoActive) {
+                        Text(
+                            "ECO",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.padding(end = 4.dp)
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(end = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = when {
+                                state.isBatteryCharging -> Icons.Default.BatteryChargingFull
+                                state.batteryLevel > 80 -> Icons.Default.BatteryFull
+                                state.batteryLevel > 40 -> Icons.Default.BatteryStd
+                                state.batteryLevel > 15 -> Icons.Default.Battery2Bar
+                                else -> Icons.Default.BatteryAlert
+                            },
+                            contentDescription = null,
+                            tint = when {
+                                state.isBatteryCharging -> MaterialTheme.colorScheme.primary
+                                state.batteryLevel <= 15 -> MaterialTheme.colorScheme.error
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            "${state.batteryLevel}%",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (state.batteryLevel <= 15) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     Icon(
                         imageVector = if (state.isBluetoothConnected)
                             Icons.Default.Bluetooth else Icons.Default.BluetoothDisabled,

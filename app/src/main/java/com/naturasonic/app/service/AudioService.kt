@@ -16,6 +16,8 @@ import com.naturasonic.app.audio.AudioModeManager
 import com.naturasonic.app.audio.AudioSessionManager
 import com.naturasonic.app.audio.OboeAudioEngine
 import com.naturasonic.app.audio.VolumeProtection
+import com.naturasonic.app.battery.BatteryMonitor
+import com.naturasonic.app.battery.EcoModeManager
 import com.naturasonic.app.bluetooth.BluetoothAudioManager
 import com.naturasonic.app.bluetooth.BluetoothConnectionState
 import com.naturasonic.app.data.local.entity.AudioMode
@@ -48,6 +50,8 @@ class AudioService : Service() {
     @Inject lateinit var modeManager: AudioModeManager
     @Inject lateinit var performanceTracker: PerformanceTracker
     @Inject lateinit var bluetoothAudioManager: BluetoothAudioManager
+    @Inject lateinit var batteryMonitor: BatteryMonitor
+    @Inject lateinit var ecoModeManager: EcoModeManager
 
     private val binder = AudioBinder()
     private val serviceScope = CoroutineScope(Dispatchers.Default + Job())
@@ -75,6 +79,8 @@ class AudioService : Service() {
         audioEngine.create()
         val started = audioEngine.start()
         if (started) {
+            batteryMonitor.startMonitoring()
+            ecoModeManager.startObserving()
             volumeProtection.onListeningStarted()
             startVolumeProtectionTick()
             startDetectionLoop()
@@ -118,6 +124,7 @@ class AudioService : Service() {
     private fun stopAudio() {
         btMonitorJob?.cancel()
         bluetoothAudioManager.stopMonitoring()
+        batteryMonitor.stopMonitoring()
         profileObserverJob?.cancel()
         detectionJob?.cancel()
         volumeTickJob?.cancel()
@@ -163,7 +170,7 @@ class AudioService : Service() {
                 }
                 performanceTracker.refreshDspStats()
                 performanceTracker.refreshMemoryStats()
-                delay(DETECTION_INTERVAL_MS)
+                delay(ecoModeManager.getDetectionIntervalMs())
             }
         }
     }
@@ -227,6 +234,5 @@ class AudioService : Service() {
         const val ACTION_START = "com.naturasonic.START_AUDIO"
         const val ACTION_STOP = "com.naturasonic.STOP_AUDIO"
         const val NOTIFICATION_ID = 1001
-        private const val DETECTION_INTERVAL_MS = 1000L
     }
 }

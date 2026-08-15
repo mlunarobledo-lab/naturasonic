@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.naturasonic.app.audio.AudioModeManager
 import com.naturasonic.app.audio.OboeAudioEngine
 import com.naturasonic.app.audio.VolumeProtection
+import com.naturasonic.app.battery.BatteryMonitor
+import com.naturasonic.app.battery.EcoModeManager
 import com.naturasonic.app.billing.BillingManager
 import com.naturasonic.app.bluetooth.BluetoothAudioManager
 import com.naturasonic.app.data.local.entity.AudioMode
@@ -34,7 +36,10 @@ data class HomeUiState(
     val latestAlert: DetectedAlert? = null,
     val isAlertDetectionActive: Boolean = false,
     val isBluetoothConnected: Boolean = false,
-    val isPremium: Boolean = false
+    val isPremium: Boolean = false,
+    val batteryLevel: Int = 100,
+    val isBatteryCharging: Boolean = false,
+    val isEcoActive: Boolean = false
 )
 
 @HiltViewModel
@@ -46,7 +51,9 @@ class HomeViewModel @Inject constructor(
     private val bluetoothManager: BluetoothAudioManager,
     private val alertDetector: SoundAlertDetector,
     private val billingManager: BillingManager,
-    private val userPreferences: UserPreferences
+    private val userPreferences: UserPreferences,
+    private val batteryMonitor: BatteryMonitor,
+    private val ecoModeManager: EcoModeManager
 ) : AndroidViewModel(application) {
 
     private val _isAudioActive = MutableStateFlow(false)
@@ -59,9 +66,12 @@ class HomeViewModel @Inject constructor(
         volumeProtection.showWarning,
         alertDetector.latestAlert,
         billingManager.isPremium,
-        alertDetector.isRunning
+        alertDetector.isRunning,
+        batteryMonitor.batteryState,
+        ecoModeManager.isEcoActive
     ) { values ->
         @Suppress("UNCHECKED_CAST")
+        val battery = values[8] as com.naturasonic.app.battery.BatteryState
         HomeUiState(
             isAudioActive = values[0] as Boolean,
             currentMode = AudioMode.fromKey(values[1] as String),
@@ -71,7 +81,10 @@ class HomeViewModel @Inject constructor(
             latestAlert = values[5] as? DetectedAlert,
             isAlertDetectionActive = values[7] as Boolean,
             isBluetoothConnected = bluetoothManager.connectedDevices.value.any { it.isConnected },
-            isPremium = values[6] as Boolean
+            isPremium = values[6] as Boolean,
+            batteryLevel = battery.level,
+            isBatteryCharging = battery.isCharging,
+            isEcoActive = values[9] as Boolean
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())
 

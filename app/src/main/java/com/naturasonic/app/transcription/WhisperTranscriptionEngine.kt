@@ -2,6 +2,7 @@ package com.naturasonic.app.transcription
 
 import android.content.Context
 import com.naturasonic.app.audio.OboeAudioEngine
+import com.naturasonic.app.battery.EcoModeManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +25,8 @@ import javax.inject.Singleton
 class WhisperTranscriptionEngine @Inject constructor(
     @ApplicationContext private val context: Context,
     private val oboeEngine: OboeAudioEngine,
-    val modelManager: GgmlModelManager
+    val modelManager: GgmlModelManager,
+    private val ecoModeManager: EcoModeManager
 ) {
     private val _currentText = MutableStateFlow("")
     val currentText: StateFlow<String> = _currentText.asStateFlow()
@@ -167,7 +169,7 @@ class WhisperTranscriptionEngine @Inject constructor(
                         _currentText.value = text.trim()
                     }
                 }
-                delay(150)
+                delay(ecoModeManager.getWhisperPollingMs())
             }
         }
     }
