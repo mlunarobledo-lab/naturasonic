@@ -81,6 +81,56 @@ void AudioProcessor::applyProfile(const float* bands, int count, float amplifica
     activeEqIndex_.store(writeIdx, std::memory_order_release);
 }
 
+void AudioProcessor::setHeadTrackingEnabled(bool enabled) {
+    std::lock_guard<std::mutex> lock(eqWriteMutex_);
+    int readIdx = activeEqIndex_.load(std::memory_order_acquire);
+    int writeIdx = 1 - readIdx;
+
+    eqSnapshots_[writeIdx] = eqSnapshots_[readIdx];
+    eqSnapshots_[writeIdx].headTrackingEnabled = enabled;
+    if (!enabled) {
+        for (int i = 0; i < kMaxEqBands; i++) {
+            eqSnapshots_[writeIdx].spatialGainOffsets[i] = 0.0f;
+        }
+    }
+    computeEqCoefficients(eqSnapshots_[writeIdx]);
+
+    activeEqIndex_.store(writeIdx, std::memory_order_release);
+}
+
+void AudioProcessor::setHeadTrackingAngles(float azimuthDeg, float pitchDeg, float sensitivity) {
+    std::lock_guard<std::mutex> lock(eqWriteMutex_);
+    int readIdx = activeEqIndex_.load(std::memory_order_acquire);
+    int writeIdx = 1 - readIdx;
+
+    eqSnapshots_[writeIdx] = eqSnapshots_[readIdx];
+    EqSnapshot& snap = eqSnapshots_[writeIdx];
+
+    if (!snap.headTrackingEnabled) {
+        return;
+    }
+
+    float azRad = azimuthDeg * (M_PI / 180.0f);
+    float cosFactor = std::cos(azRad);
+    float attenuation = (1.0f - cosFactor) * 0.5f;
+    float maxAtten = -6.0f * sensitivity;
+
+    for (int i = 0; i < snap.bandCount; i++) {
+        float freqWeight;
+        if (kCenterFreqs[i] <= 500.0f) {
+            freqWeight = 0.1f;
+        } else if (kCenterFreqs[i] <= 2000.0f) {
+            freqWeight = 0.3f + 0.4f * ((kCenterFreqs[i] - 500.0f) / 1500.0f);
+        } else {
+            freqWeight = 0.7f + 0.3f * std::min((kCenterFreqs[i] - 2000.0f) / 10000.0f, 1.0f);
+        }
+        snap.spatialGainOffsets[i] = maxAtten * attenuation * freqWeight;
+    }
+
+    computeEqCoefficients(snap);
+    activeEqIndex_.store(writeIdx, std::memory_order_release);
+}
+
 void AudioProcessor::applyAmplification(float* buffer, int numFrames, float level) {
     float linearGain = 1.0f + level * 3.0f;
 
@@ -91,7 +141,11 @@ void AudioProcessor::applyAmplification(float* buffer, int numFrames, float leve
 
 void AudioProcessor::applyEqualizer(float* buffer, int numFrames, const EqSnapshot& snap) {
     for (int band = 0; band < snap.bandCount; band++) {
-        if (std::abs(snap.gains[band]) < 0.1f) continue;
+        float effectiveGain = snap.gains[band];
+        if (snap.headTrackingEnabled) {
+            effectiveGain += snap.spatialGainOffsets[band];
+        }
+        if (std::abs(effectiveGain) < 0.1f) continue;
 
         for (int i = 0; i < numFrames; i++) {
             buffer[i] = processBiquad(buffer[i], snap.coeffs[band], eqStates_[band]);
@@ -142,6 +196,9 @@ void AudioProcessor::computeEqCoefficients(EqSnapshot& snap) {
     for (int i = 0; i < snap.bandCount; i++) {
         float f0 = kCenterFreqs[i];
         float gainDb = snap.gains[i];
+        if (snap.headTrackingEnabled) {
+            gainDb = std::clamp(gainDb + snap.spatialGainOffsets[i], -12.0f, 12.0f);
+        }
         float Q = 1.0f;
 
         float A = std::pow(10.0f, gainDb / 40.0f);

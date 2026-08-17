@@ -90,6 +90,14 @@ void NaturaSonicEngine::setOutputMuted(bool muted) {
     LOGI("Output muted: %s", muted ? "true" : "false");
 }
 
+void NaturaSonicEngine::setHeadTrackingEnabled(bool enabled) {
+    processor_.setHeadTrackingEnabled(enabled);
+}
+
+void NaturaSonicEngine::setHeadTrackingAngles(float azimuthDeg, float pitchDeg, float sensitivity) {
+    processor_.setHeadTrackingAngles(azimuthDeg, pitchDeg, sensitivity);
+}
+
 std::vector<float> NaturaSonicEngine::getLatestAudioBuffer() {
     std::lock_guard<std::mutex> lock(bufferMutex_);
     return latestBuffer_;

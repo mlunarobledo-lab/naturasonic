@@ -96,6 +96,25 @@ Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetOutputMuted(
 }
 
 JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetHeadTrackingEnabled(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jboolean enabled) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setHeadTrackingEnabled(enabled == JNI_TRUE);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetHeadTrackingAngles(
+        JNIEnv* env, jobject thiz, jlong engineHandle,
+        jfloat azimuthDeg, jfloat pitchDeg, jfloat sensitivity) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setHeadTrackingAngles(azimuthDeg, pitchDeg, sensitivity);
+    }
+}
+
+JNIEXPORT void JNICALL
 Java_com_naturasonic_app_audio_OboeAudioEngine_nativeApplyProfile(
         JNIEnv* env, jobject thiz, jlong engineHandle,
         jfloatArray bands, jfloat amplification, jint noiseGateMode) {

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.CellTower
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.EnergySavingsLeaf
 import androidx.compose.material.icons.filled.HearingDisabled
 import androidx.compose.material.icons.filled.NoiseAware
@@ -69,6 +70,7 @@ fun SettingsScreen(
     onNavigateToAnc: () -> Unit = {},
     onNavigateToEco: () -> Unit = {},
     onNavigateToAudioSharing: () -> Unit = {},
+    onNavigateToHeadTracking: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -173,6 +175,14 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.height(24.dp))
             }
+
+            TextButton(onClick = onNavigateToHeadTracking) {
+                Icon(Icons.Default.MyLocation, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Enfoque direccional")
+            }
+
+            Spacer(Modifier.height(8.dp))
 
             TextButton(onClick = onNavigateToAudioSharing) {
                 Icon(Icons.Default.CellTower, contentDescription = null)

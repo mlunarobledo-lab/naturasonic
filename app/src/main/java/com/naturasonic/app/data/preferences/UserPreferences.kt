@@ -67,6 +67,14 @@ class UserPreferences @Inject constructor(
         prefs[KEY_SELECTED_PROFILE_ID]?.toLongOrNull() ?: -1L
     }
 
+    val headTrackingEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_HEAD_TRACKING_ENABLED] ?: false
+    }
+
+    val headTrackingSensitivity: Flow<Float> = dataStore.data.map { prefs ->
+        prefs[KEY_HEAD_TRACKING_SENSITIVITY] ?: 0.6f
+    }
+
     suspend fun setCurrentMode(mode: String) {
         dataStore.edit { it[KEY_CURRENT_MODE] = mode }
     }
@@ -111,6 +119,14 @@ class UserPreferences @Inject constructor(
         dataStore.edit { it[KEY_SELECTED_PROFILE_ID] = id.toString() }
     }
 
+    suspend fun setHeadTrackingEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_HEAD_TRACKING_ENABLED] = enabled }
+    }
+
+    suspend fun setHeadTrackingSensitivity(sensitivity: Float) {
+        dataStore.edit { it[KEY_HEAD_TRACKING_SENSITIVITY] = sensitivity.coerceIn(0f, 1f) }
+    }
+
     companion object {
         private val KEY_CURRENT_MODE = stringPreferencesKey("current_mode")
         private val KEY_MASTER_VOLUME = floatPreferencesKey("master_volume")
@@ -123,5 +139,7 @@ class UserPreferences @Inject constructor(
         private val KEY_ECO_MODE_AUTO = booleanPreferencesKey("eco_mode_auto_activate")
         private val KEY_ECO_MODE_THRESHOLD = intPreferencesKey("eco_mode_threshold")
         private val KEY_SELECTED_PROFILE_ID = stringPreferencesKey("selected_profile_id")
+        private val KEY_HEAD_TRACKING_ENABLED = booleanPreferencesKey("head_tracking_enabled")
+        private val KEY_HEAD_TRACKING_SENSITIVITY = floatPreferencesKey("head_tracking_sensitivity")
     }
 }

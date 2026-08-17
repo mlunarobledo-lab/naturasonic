@@ -33,6 +33,8 @@ public:
     void setVolumeLimitDb(float limitDb);
     void applyProfile(const float* bands, int count, float amplification, int noiseGateMode);
     void setOutputMuted(bool muted);
+    void setHeadTrackingEnabled(bool enabled);
+    void setHeadTrackingAngles(float azimuthDeg, float pitchDeg, float sensitivity);
 
     std::vector<float> getLatestAudioBuffer();
     std::vector<float> getYamnetAudioBuffer();

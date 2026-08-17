@@ -14,6 +14,8 @@ import com.naturasonic.app.NaturaSonicApp
 import com.naturasonic.app.R
 import com.naturasonic.app.audio.AudioModeManager
 import com.naturasonic.app.audio.AudioSessionManager
+import com.naturasonic.app.audio.HeadTrackingManager
+import com.naturasonic.app.audio.HeadTrackingState
 import com.naturasonic.app.audio.OboeAudioEngine
 import com.naturasonic.app.audio.VolumeProtection
 import com.naturasonic.app.battery.BatteryMonitor
@@ -55,6 +57,7 @@ class AudioService : Service() {
     @Inject lateinit var batteryMonitor: BatteryMonitor
     @Inject lateinit var ecoModeManager: EcoModeManager
     @Inject lateinit var leAudioBroadcastManager: LeAudioBroadcastManager
+    @Inject lateinit var headTrackingManager: HeadTrackingManager
 
     private val binder = AudioBinder()
     private val serviceScope = CoroutineScope(Dispatchers.Default + Job())
@@ -62,6 +65,7 @@ class AudioService : Service() {
     private var detectionJob: Job? = null
     private var profileObserverJob: Job? = null
     private var btMonitorJob: Job? = null
+    private var headTrackingJob: Job? = null
 
     inner class AudioBinder : Binder() {
         fun getService(): AudioService = this@AudioService
@@ -91,6 +95,7 @@ class AudioService : Service() {
             startBluetoothMonitor()
             leAudioBroadcastManager.checkBroadcastSupport()
             leAudioBroadcastManager.connectProfile()
+            startHeadTrackingObserver()
         }
     }
 
@@ -126,7 +131,40 @@ class AudioService : Service() {
         }
     }
 
+    private fun startHeadTrackingObserver() {
+        headTrackingJob?.cancel()
+        headTrackingJob = serviceScope.launch {
+            combine(
+                userPreferences.headTrackingEnabled,
+                headTrackingManager.state,
+                userPreferences.headTrackingSensitivity
+            ) { enabled, state, sensitivity ->
+                Triple(enabled, state, sensitivity)
+            }.collect { (enabled, state, sensitivity) ->
+                audioEngine.setHeadTrackingEnabled(enabled)
+                if (enabled) {
+                    if (!headTrackingManager.isSensorAvailable) return@collect
+                    if (state is HeadTrackingState.Disabled) {
+                        headTrackingManager.start()
+                    }
+                    if (state is HeadTrackingState.Active) {
+                        audioEngine.setHeadTrackingAngles(
+                            state.azimuthDeg,
+                            state.pitchDeg,
+                            sensitivity
+                        )
+                    }
+                } else {
+                    headTrackingManager.stop()
+                }
+            }
+        }
+    }
+
     private fun stopAudio() {
+        headTrackingJob?.cancel()
+        headTrackingManager.stop()
+        audioEngine.setHeadTrackingEnabled(false)
         if (leAudioBroadcastManager.broadcastState.value is BroadcastState.Active) {
             leAudioBroadcastManager.stopBroadcast()
         }
@@ -232,6 +270,8 @@ class AudioService : Service() {
     }
 
     override fun onDestroy() {
+        headTrackingJob?.cancel()
+        headTrackingManager.stop()
         if (leAudioBroadcastManager.broadcastState.value is BroadcastState.Active) {
             leAudioBroadcastManager.stopBroadcast()
         }

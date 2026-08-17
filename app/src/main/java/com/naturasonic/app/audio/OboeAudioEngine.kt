@@ -64,6 +64,18 @@ class OboeAudioEngine @Inject constructor() {
         }
     }
 
+    fun setHeadTrackingEnabled(enabled: Boolean) {
+        if (engineHandle != 0L) {
+            nativeSetHeadTrackingEnabled(engineHandle, enabled)
+        }
+    }
+
+    fun setHeadTrackingAngles(azimuthDeg: Float, pitchDeg: Float, sensitivity: Float) {
+        if (engineHandle != 0L) {
+            nativeSetHeadTrackingAngles(engineHandle, azimuthDeg, pitchDeg, sensitivity.coerceIn(0f, 1f))
+        }
+    }
+
     fun applyProfile(bands: FloatArray, amplification: Float, noiseGateMode: Int) {
         if (engineHandle != 0L) {
             nativeApplyProfile(engineHandle, bands, amplification.coerceIn(0f, 1f), noiseGateMode.coerceIn(0, 2))
@@ -101,6 +113,8 @@ class OboeAudioEngine @Inject constructor() {
     private external fun nativeSetNoiseGateMode(engineHandle: Long, mode: Int)
     private external fun nativeSetVolumeLimitDb(engineHandle: Long, limitDb: Float)
     private external fun nativeSetOutputMuted(engineHandle: Long, muted: Boolean)
+    private external fun nativeSetHeadTrackingEnabled(engineHandle: Long, enabled: Boolean)
+    private external fun nativeSetHeadTrackingAngles(engineHandle: Long, azimuthDeg: Float, pitchDeg: Float, sensitivity: Float)
     private external fun nativeApplyProfile(engineHandle: Long, bands: FloatArray, amplification: Float, noiseGateMode: Int)
     private external fun nativeGetAudioBuffer(engineHandle: Long): FloatArray?
     private external fun nativeGetYamnetAudioBuffer(engineHandle: Long): FloatArray?

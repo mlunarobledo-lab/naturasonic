@@ -19,6 +19,7 @@ import com.naturasonic.app.ui.screens.anc.AncControlScreen
 import com.naturasonic.app.ui.screens.audiogram.AudiogramTestScreen
 import com.naturasonic.app.ui.screens.audiosharing.AudioSharingScreen
 import com.naturasonic.app.ui.screens.eco.EcoModeScreen
+import com.naturasonic.app.ui.screens.headtracking.HeadTrackingScreen
 import com.naturasonic.app.ui.screens.transcription.TranscriptionScreen
 import com.naturasonic.app.ui.screens.transcription.TranscriptionViewModel
 
@@ -33,6 +34,7 @@ object Routes {
     const val ANC_CONTROL = "anc_control"
     const val ECO_MODE = "eco_mode"
     const val AUDIO_SHARING = "audio_sharing"
+    const val HEAD_TRACKING = "head_tracking"
 }
 
 @Composable
@@ -95,6 +97,9 @@ fun NaturaSonicNavHost() {
                 },
                 onNavigateToAudioSharing = {
                     navController.navigate(Routes.AUDIO_SHARING)
+                },
+                onNavigateToHeadTracking = {
+                    navController.navigate(Routes.HEAD_TRACKING)
                 }
             )
         }
@@ -131,6 +136,12 @@ fun NaturaSonicNavHost() {
 
         composable(Routes.AUDIO_SHARING) {
             AudioSharingScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.HEAD_TRACKING) {
+            HeadTrackingScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
