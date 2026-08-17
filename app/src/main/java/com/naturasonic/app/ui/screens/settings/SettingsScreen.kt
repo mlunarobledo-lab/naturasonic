@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.CellTower
 import androidx.compose.material.icons.filled.EnergySavingsLeaf
 import androidx.compose.material.icons.filled.HearingDisabled
 import androidx.compose.material.icons.filled.NoiseAware
@@ -67,6 +68,7 @@ fun SettingsScreen(
     onNavigateToAudiogram: () -> Unit = {},
     onNavigateToAnc: () -> Unit = {},
     onNavigateToEco: () -> Unit = {},
+    onNavigateToAudioSharing: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -171,6 +173,14 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.height(24.dp))
             }
+
+            TextButton(onClick = onNavigateToAudioSharing) {
+                Icon(Icons.Default.CellTower, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Compartir audio")
+            }
+
+            Spacer(Modifier.height(8.dp))
 
             TextButton(onClick = onNavigateToEco) {
                 Icon(Icons.Default.EnergySavingsLeaf, contentDescription = null)

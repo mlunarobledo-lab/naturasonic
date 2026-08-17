@@ -20,6 +20,8 @@ import com.naturasonic.app.battery.BatteryMonitor
 import com.naturasonic.app.battery.EcoModeManager
 import com.naturasonic.app.bluetooth.BluetoothAudioManager
 import com.naturasonic.app.bluetooth.BluetoothConnectionState
+import com.naturasonic.app.bluetooth.BroadcastState
+import com.naturasonic.app.bluetooth.LeAudioBroadcastManager
 import com.naturasonic.app.data.local.entity.AudioMode
 import com.naturasonic.app.data.preferences.UserPreferences
 import com.naturasonic.app.data.repository.AudioProfileRepository
@@ -52,6 +54,7 @@ class AudioService : Service() {
     @Inject lateinit var bluetoothAudioManager: BluetoothAudioManager
     @Inject lateinit var batteryMonitor: BatteryMonitor
     @Inject lateinit var ecoModeManager: EcoModeManager
+    @Inject lateinit var leAudioBroadcastManager: LeAudioBroadcastManager
 
     private val binder = AudioBinder()
     private val serviceScope = CoroutineScope(Dispatchers.Default + Job())
@@ -86,6 +89,8 @@ class AudioService : Service() {
             startDetectionLoop()
             startProfileObserver()
             startBluetoothMonitor()
+            leAudioBroadcastManager.checkBroadcastSupport()
+            leAudioBroadcastManager.connectProfile()
         }
     }
 
@@ -122,6 +127,10 @@ class AudioService : Service() {
     }
 
     private fun stopAudio() {
+        if (leAudioBroadcastManager.broadcastState.value is BroadcastState.Active) {
+            leAudioBroadcastManager.stopBroadcast()
+        }
+        leAudioBroadcastManager.disconnectProfile()
         btMonitorJob?.cancel()
         bluetoothAudioManager.stopMonitoring()
         batteryMonitor.stopMonitoring()
@@ -223,6 +232,10 @@ class AudioService : Service() {
     }
 
     override fun onDestroy() {
+        if (leAudioBroadcastManager.broadcastState.value is BroadcastState.Active) {
+            leAudioBroadcastManager.stopBroadcast()
+        }
+        leAudioBroadcastManager.disconnectProfile()
         bluetoothAudioManager.stopMonitoring()
         serviceScope.cancel()
         audioEngine.destroy()
