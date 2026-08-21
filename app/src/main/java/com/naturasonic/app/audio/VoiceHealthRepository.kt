@@ -1,5 +1,7 @@
 package com.naturasonic.app.audio
 
+import com.naturasonic.app.data.local.dao.VoiceMetricsDao
+import com.naturasonic.app.data.local.entity.VoiceMetricsEntry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -20,7 +22,8 @@ data class VoiceMetricsData(
 
 @Singleton
 class VoiceHealthRepository @Inject constructor(
-    private val audioEngine: OboeAudioEngine
+    private val audioEngine: OboeAudioEngine,
+    private val voiceMetricsDao: VoiceMetricsDao
 ) {
     private val _metrics = MutableStateFlow(VoiceMetricsData())
     val metrics: StateFlow<VoiceMetricsData> = _metrics.asStateFlow()
@@ -29,6 +32,7 @@ class VoiceHealthRepository @Inject constructor(
     val history: StateFlow<List<VoiceMetricsData>> = _history.asStateFlow()
 
     private var pollingJob: Job? = null
+    private var persistCounter = 0
 
     fun startPolling(scope: CoroutineScope) {
         pollingJob?.cancel()
@@ -49,6 +53,17 @@ class VoiceHealthRepository @Inject constructor(
                         current.add(data)
                         if (current.size > MAX_HISTORY) current.removeAt(0)
                         _history.value = current
+                        persistCounter++
+                        if (persistCounter >= PERSIST_EVERY_N) {
+                            persistCounter = 0
+                            voiceMetricsDao.insert(
+                                VoiceMetricsEntry(
+                                    pitchHz = data.pitchHz,
+                                    jitterPercent = data.jitterPercent,
+                                    shimmerPercent = data.shimmerPercent
+                                )
+                            )
+                        }
                     }
                 }
                 delay(POLL_INTERVAL_MS)
@@ -65,5 +80,6 @@ class VoiceHealthRepository @Inject constructor(
     companion object {
         private const val POLL_INTERVAL_MS = 500L
         private const val MAX_HISTORY = 60
+        private const val PERSIST_EVERY_N = 6
     }
 }

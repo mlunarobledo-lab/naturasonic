@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.EnergySavingsLeaf
 import androidx.compose.material.icons.filled.HearingDisabled
 import androidx.compose.material.icons.filled.NoiseAware
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
@@ -74,6 +75,7 @@ fun SettingsScreen(
     onNavigateToHeadTracking: () -> Unit = {},
     onNavigateToVoiceHealth: () -> Unit = {},
     onNavigateToAec: () -> Unit = {},
+    onNavigateToExportReport: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -239,6 +241,14 @@ fun SettingsScreen(
                 Icon(Icons.Default.Speed, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Rendimiento")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            TextButton(onClick = onNavigateToExportReport) {
+                Icon(Icons.Default.PictureAsPdf, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Exportar reporte")
             }
 
             Spacer(Modifier.height(8.dp))

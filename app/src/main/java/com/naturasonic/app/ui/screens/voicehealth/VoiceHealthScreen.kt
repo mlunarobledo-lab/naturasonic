@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,6 +58,7 @@ private val ColorShimmerLine = Color(0xFFFF9800)
 @Composable
 fun VoiceHealthScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToExport: () -> Unit = {},
     viewModel: VoiceHealthViewModel = hiltViewModel()
 ) {
     val metrics by viewModel.metrics.collectAsState()
@@ -69,6 +71,11 @@ fun VoiceHealthScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onNavigateToExport) {
+                        Icon(Icons.Default.PictureAsPdf, "Exportar reporte")
                     }
                 }
             )
