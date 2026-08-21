@@ -19,7 +19,7 @@ effort: max
 
 Soy el patron canonico (`bucle-agentico`) aplicado a **escala feature**.
 
-- Mi **mapear** es leer el brief origen completo + codebase.
+- Mi **mapear** es leer el brief origen completo + mapear el codebase sobre el **grafo de conocimiento** (`.graphify/`) — la fuente estructural — y afinar con grep.
 - Mi **planear** son las fases del PRP por nombre, sin subtareas.
 - Mi **ejecutar** es delegar al `bucle-agentico` (escala subtarea).
 - Mi **documentar** son las secciones heredadas del brief (Origen, Directiva, Supuestos, Fuera de Alcance, Aprendizajes heredados) + el Plan de implementacion.
@@ -113,13 +113,14 @@ NUNCA preguntar "criterios de exito medibles", "restricciones tecnicas", "valor 
 
 ### Paso 3: Investigar contexto del codebase
 
-Antes de escribir el PRP, investiga el codebase:
+Antes de escribir el PRP, mapea el codebase — **empieza por el grafo de conocimiento**, no por el grep a ciegas:
 
-- **Grep/Glob**: buscar codigo existente relacionado con la feature.
-- **Read**: leer archivos relevantes para entender patrones actuales.
+- **Grafo (`.graphify/`) — primero**: si existe `.graphify/graph.json`, orientate con el grafo antes que nada. `graphify summary --graph .graphify/graph.json` para el panorama; `graphify query "<feature>"` para el subgrafo relacionado (arquitectura, componentes y dependencias que la feature tocara); `graphify review-analysis --files <archivos candidatos> --graph .graphify/graph.json` para estimar el blast-radius de lo que planeas. Devuelve un subgrafo scopeado — mas preciso y con menos tokens que barrer el repo. Si el grafo aun no existe (proyecto muy nuevo) o esta `stale`, constrúyelo/actualízalo con `@.claude/skills/graphify/SKILL.md` cuando el tamaño del codebase lo justifique.
+- **Grep/Glob — para afinar**: buscar el codigo existente que el grafo señaló, y cubrir lo que el grafo no alcance.
+- **Read**: leer los archivos que el grafo/grep marcaron como relevantes para entender patrones actuales.
 - **Supabase** (o equivalente del stack heredado): si involucra BD, verificar tablas y estructura existente.
 
-Esto alimenta las secciones de Contexto y Modelo de datos del PRP.
+Esto alimenta las secciones de Contexto y Modelo de datos del PRP. El grafo, ademas, hace explicitas las dependencias y comunidades que un grep lineal se perderia.
 
 ### Paso 4: Anunciar arquitectura propuesta y avanzar
 

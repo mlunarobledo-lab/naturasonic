@@ -114,6 +114,29 @@ class OboeAudioEngine @Inject constructor() {
         return nativeGetVoiceMetrics(engineHandle)
     }
 
+    fun startDosimetry() {
+        if (engineHandle != 0L) {
+            nativeStartDosimetry(engineHandle)
+        }
+    }
+
+    fun stopDosimetry() {
+        if (engineHandle != 0L) {
+            nativeStopDosimetry(engineHandle)
+        }
+    }
+
+    fun getDosimetryData(): FloatArray? {
+        if (engineHandle == 0L) return null
+        return nativeGetDosimetryData(engineHandle)
+    }
+
+    fun setCalibrationOffset(offsetDb: Float) {
+        if (engineHandle != 0L) {
+            nativeSetCalibrationOffset(engineHandle, offsetDb)
+        }
+    }
+
     fun setAecMode(mode: Int) {
         if (engineHandle != 0L) {
             nativeSetAecMode(engineHandle, mode.coerceIn(0, 2))
@@ -150,6 +173,10 @@ class OboeAudioEngine @Inject constructor() {
     private external fun nativeStartVoiceAnalyzer(engineHandle: Long)
     private external fun nativeStopVoiceAnalyzer(engineHandle: Long)
     private external fun nativeGetVoiceMetrics(engineHandle: Long): FloatArray?
+    private external fun nativeStartDosimetry(engineHandle: Long)
+    private external fun nativeStopDosimetry(engineHandle: Long)
+    private external fun nativeGetDosimetryData(engineHandle: Long): FloatArray?
+    private external fun nativeSetCalibrationOffset(engineHandle: Long, offsetDb: Float)
     private external fun nativeSetAecMode(engineHandle: Long, mode: Int)
     private external fun nativeGetAudioSessionId(engineHandle: Long): Int
     private external fun nativeDestroy(engineHandle: Long)

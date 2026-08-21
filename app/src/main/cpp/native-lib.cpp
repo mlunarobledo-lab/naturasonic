@@ -231,6 +231,48 @@ Java_com_naturasonic_app_audio_OboeAudioEngine_nativeDestroy(
     }
 }
 
+// --- Dosimetry JNI bridge ---
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeStartDosimetry(
+        JNIEnv* env, jobject thiz, jlong engineHandle) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->startDosimetry();
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeStopDosimetry(
+        JNIEnv* env, jobject thiz, jlong engineHandle) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->stopDosimetry();
+    }
+}
+
+JNIEXPORT jfloatArray JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeGetDosimetryData(
+        JNIEnv* env, jobject thiz, jlong engineHandle) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (!eng) return nullptr;
+
+    auto data = eng->getDosimetryData();
+    jfloatArray result = env->NewFloatArray(3);
+    float arr[3] = {data.instantDba, data.leq, data.peakDba};
+    env->SetFloatArrayRegion(result, 0, 3, arr);
+    return result;
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetCalibrationOffset(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jfloat offsetDb) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setCalibrationOffset(offsetDb);
+    }
+}
+
 // --- Whisper JNI bridge (audio stays in C++) ---
 
 JNIEXPORT jboolean JNICALL

@@ -8,6 +8,7 @@ import com.naturasonic.app.data.local.dao.AlertEventDao
 import com.naturasonic.app.data.local.dao.AudioProfileDao
 import com.naturasonic.app.data.local.dao.AudiogramDao
 import com.naturasonic.app.data.local.dao.TranscriptionDao
+import com.naturasonic.app.data.local.dao.DosimetrySampleDao
 import com.naturasonic.app.data.local.dao.VoiceMetricsDao
 import com.naturasonic.app.sync.CloudSyncApi
 import com.naturasonic.app.sync.StubCloudSyncApi
@@ -30,7 +31,7 @@ object AppModule {
             AppDatabase::class.java,
             "naturasonic.db"
         )
-            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4)
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5)
             .build()
 
     @Provides
@@ -47,6 +48,9 @@ object AppModule {
 
     @Provides
     fun provideVoiceMetricsDao(db: AppDatabase): VoiceMetricsDao = db.voiceMetricsDao()
+
+    @Provides
+    fun provideDosimetrySampleDao(db: AppDatabase): DosimetrySampleDao = db.dosimetrySampleDao()
 
     @Provides
     @Singleton

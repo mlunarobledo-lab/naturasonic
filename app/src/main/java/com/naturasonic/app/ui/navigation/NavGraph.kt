@@ -25,6 +25,7 @@ import com.naturasonic.app.ui.screens.transcription.TranscriptionViewModel
 import com.naturasonic.app.ui.screens.voicehealth.VoiceHealthScreen
 import com.naturasonic.app.ui.screens.aec.AecSettingsScreen
 import com.naturasonic.app.ui.screens.export.ExportReportScreen
+import com.naturasonic.app.ui.screens.soundscape.SoundscapeAnalyticsScreen
 
 object Routes {
     const val ONBOARDING = "onboarding"
@@ -41,6 +42,7 @@ object Routes {
     const val VOICE_HEALTH = "voice_health"
     const val AEC_SETTINGS = "aec_settings"
     const val EXPORT_REPORT = "export_report"
+    const val SOUNDSCAPE = "soundscape"
 }
 
 @Composable
@@ -115,6 +117,9 @@ fun NaturaSonicNavHost() {
                 },
                 onNavigateToExportReport = {
                     navController.navigate(Routes.EXPORT_REPORT)
+                },
+                onNavigateToSoundscape = {
+                    navController.navigate(Routes.SOUNDSCAPE)
                 }
             )
         }
@@ -178,6 +183,12 @@ fun NaturaSonicNavHost() {
 
         composable(Routes.EXPORT_REPORT) {
             ExportReportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.SOUNDSCAPE) {
+            SoundscapeAnalyticsScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

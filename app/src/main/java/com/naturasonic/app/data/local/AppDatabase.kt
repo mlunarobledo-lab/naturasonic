@@ -7,11 +7,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.naturasonic.app.data.local.dao.AlertEventDao
 import com.naturasonic.app.data.local.dao.AudioProfileDao
 import com.naturasonic.app.data.local.dao.AudiogramDao
+import com.naturasonic.app.data.local.dao.DosimetrySampleDao
 import com.naturasonic.app.data.local.dao.TranscriptionDao
 import com.naturasonic.app.data.local.dao.VoiceMetricsDao
 import com.naturasonic.app.data.local.entity.AlertEvent
 import com.naturasonic.app.data.local.entity.AudioProfile
 import com.naturasonic.app.data.local.entity.AudiogramRecord
+import com.naturasonic.app.data.local.entity.DosimetrySample
 import com.naturasonic.app.data.local.entity.TranscriptionEntry
 import com.naturasonic.app.data.local.entity.VoiceMetricsEntry
 
@@ -21,9 +23,10 @@ import com.naturasonic.app.data.local.entity.VoiceMetricsEntry
         TranscriptionEntry::class,
         AlertEvent::class,
         AudiogramRecord::class,
-        VoiceMetricsEntry::class
+        VoiceMetricsEntry::class,
+        DosimetrySample::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -32,6 +35,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun alertEventDao(): AlertEventDao
     abstract fun audiogramDao(): AudiogramDao
     abstract fun voiceMetricsDao(): VoiceMetricsDao
+    abstract fun dosimetrySampleDao(): DosimetrySampleDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -63,6 +67,21 @@ abstract class AppDatabase : RoomDatabase() {
                         pitchHz REAL NOT NULL,
                         jitterPercent REAL NOT NULL,
                         shimmerPercent REAL NOT NULL,
+                        recordedAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS dosimetry_samples (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        instantDba REAL NOT NULL,
+                        leq REAL NOT NULL,
+                        doseOsha REAL NOT NULL,
+                        doseNiosh REAL NOT NULL,
                         recordedAt INTEGER NOT NULL
                     )
                 """.trimIndent())

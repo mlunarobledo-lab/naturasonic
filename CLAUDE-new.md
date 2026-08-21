@@ -91,6 +91,29 @@ ESCALA SUBTAREA  ──► bucle-agentico  (también la doctrina canónica)
 
 ---
 
+## Mapeo graph-first: el grafo de conocimiento
+
+> **"Mapea la realidad, no la imagines."** El verbo **Mapea** de las tres escalas se apoya en una fuente estructural concreta: el **grafo de conocimiento del código**.
+
+Este proyecto nace **graph-first**. En `.graphify/` vive un grafo navegable del codebase — nodos (funciones, componentes, tablas, conceptos), aristas con auditoría honesta (`EXTRACTED` / `INFERRED` / `AMBIGUOUS`), comunidades detectadas y *god nodes* (los puntos más conectados del sistema) — más un `GRAPH_REPORT.md` legible. Lo produce y mantiene la skill `@.claude/skills/graphify/SKILL.md`. El grafo es tu **mapa estructural de la realidad**: consúltalo antes de planear o tocar código, en vez de reconstruir el contexto de memoria o a fuerza de grep ciego.
+
+**Contrato de uso del agente (aplica a `prp`, `bucle-agentico`, `praxis-init` y a cualquier trabajo de mapeo):**
+
+1. **Orientarse antes de tocar código.** Ante cualquier pregunta de arquitectura, dependencias o *"¿dónde vive X y qué lo toca?"*, si existe `.graphify/graph.json` tu **primer** movimiento es consultar el grafo:
+   - `graphify summary --graph .graphify/graph.json` — orientación barata de primer salto.
+   - `graphify query "<pregunta>"` — subgrafo scopeado (BFS); `--dfs` para trazar un camino concreto.
+   - `graphify path "<A>" "<B>"` / `graphify explain "<nodo>"` — camino más corto / explicación en lenguaje llano.
+   Devuelve un subgrafo pequeño y preciso: casi siempre menos tokens que un grep crudo o que leer `GRAPH_REPORT.md` entero.
+2. **Medir el blast-radius antes de cambiar.** Antes de entrar a una fase o de abrir un PR:
+   - `graphify review-delta --files <archivos> --graph .graphify/graph.json` — impacto de lo que vas a cambiar.
+   - `graphify review-analysis --files <archivos> --graph .graphify/graph.json` — blast radius + bridge nodes + hints de test-gap + comunidades impactadas.
+3. **Mantenerlo fresco.** Un grafo que miente es peor que ninguno. Tras cambios de código, `graphify <path> --update` (barato: solo AST cuando solo cambió código), `--watch` en background, o el hook post-commit (`graphify hook install`). Si `.graphify/needs_update` existe o `.graphify/branch.json` marca `stale`, actualiza antes de confiar en resultados semánticos.
+4. **Construirlo cuando aún no existe.** Un scaffold recién creado casi no tiene código que graficar todavía: **el grafo crece con el proyecto**. La primera vez que un mapeo de contexto lo justifique, constrúyelo sobre el codebase real con la tubería de la skill `graphify` y de ahí mantenlo fresco.
+
+**Determinismo antes que inferencia**: el grafo es la **fuente estructural** — el agente lo consulta, no lo reinventa. El grep sigue siendo válido y lo **complementa** (para scopes triviales de 2-3 archivos leerlos directo es más rápido); el grafo brilla cuando el mapeo cruza múltiples archivos, comunidades o capas. `.graphify/graph.json` y `GRAPH_REPORT.md` viajan con el repo; el estado volátil (`branch.json`, `cache/`, `needs_update`) está en `.gitignore`.
+
+---
+
 ## Modos de operación
 
 Praxis opera en uno de tres modos según la tarea. Comunica explícitamente en qué modo estás antes de actuar.
@@ -105,10 +128,11 @@ Nunca saltas del Modo Brief al Modo Ejecución sin pasar por Modo Plan en featur
 
 ## Router de skills
 
-El usuario expresa una intención en lenguaje natural. Tú identificas qué skill aplicar usando esta tabla. El Router incluye las 17 skills disponibles — si la skill apropiada no está activa, indícalo al usuario y continúa con el fallback.
+El usuario expresa una intención en lenguaje natural. Tú identificas qué skill aplicar usando esta tabla. El Router incluye las 18 skills disponibles — si la skill apropiada no está activa, indícalo al usuario y continúa con el fallback.
 
 | Cuando el usuario dice… | Skill |
 |---|---|
+| "Entiende la arquitectura / mapea el código / grafo de conocimiento / dependencias / qué toca este cambio / blast-radius" | `graphify` |
 | "Tengo un proyecto ya hecho / analiza mi código / conoce este repo / dame contexto del codebase" | `praxis-init` |
 | "Hostear en mi servidor / migrar de Vercel/Railway a un VPS / levantar Coolify / asegurar mi servidor / backups" | `infra-vps` |
 | "Quiero arrancar / empezar / crear una app / un negocio / un proyecto" | `brief` |
@@ -132,7 +156,7 @@ El usuario expresa una intención en lenguaje natural. Tú identificas qué skil
 ---
 
 <!-- PRAXIS:SKILLS_START -->
-## Skills: 10 Herramientas Especializadas
+## Skills: 11 Herramientas Especializadas
 
 | # | Skill | Cuando usarlo |
 |---|-------|---------------|
@@ -140,12 +164,13 @@ El usuario expresa una intención en lenguaje natural. Tú identificas qué skil
 | 2 | `bucle-agentico` | Features complejas: multiples fases coordinadas (DB + API + UI) |
 | 3 | `build-with-agent-team` | Coordinar equipos de agentes para planes complejos (Jefe de Planta) |
 | 4 | `frontend-design` | UI premium: shadcn/ui, dark mode, skeletons, micro-interacciones |
-| 5 | `infra-vps` | Infraestructura propia: VPS + Coolify + Cloudflare. Hostear, migrar de Vercel/Railway, backups, seguridad |
-| 6 | `playwright-cli` | Testing automatizado con browser real |
-| 7 | `praxis-init` | Analizar un proyecto existente con un equipo de agentes read-only y documentar su contexto real en el memory file |
-| 8 | `prp` | Plan de feature compleja antes de implementar. Siempre antes de bucle-agentico |
-| 9 | `skill-creator` | Crear nuevas skills (Agent Skills Specification de Anthropic) |
-| 10 | `supabase-admin` | Todo BD: crear tablas, RLS, migraciones, queries, metricas, CRUD |
+| 5 | `graphify` | Grafo de conocimiento del codigo: mapea arquitectura, dependencias y blast-radius antes de tocar nada (`.graphify/`) |
+| 6 | `infra-vps` | Infraestructura propia: VPS + Coolify + Cloudflare. Hostear, migrar de Vercel/Railway, backups, seguridad |
+| 7 | `playwright-cli` | Testing automatizado con browser real |
+| 8 | `praxis-init` | Analizar un proyecto existente con un equipo de agentes read-only y documentar su contexto real en el memory file |
+| 9 | `prp` | Plan de feature compleja antes de implementar. Siempre antes de bucle-agentico |
+| 10 | `skill-creator` | Crear nuevas skills (Agent Skills Specification de Anthropic) |
+| 11 | `supabase-admin` | Todo BD: crear tablas, RLS, migraciones, queries, metricas, CRUD |
 <!-- PRAXIS:SKILLS_END -->
 
 ---
@@ -357,11 +382,12 @@ npx tsc --noEmit     # Verificar tipos
 |   `-- praxis-tool-logger.sh
 |-- PRPs/
 |   `-- prp-base.md              # Template de planes
-`-- skills/                       # 10 skills activos
+`-- skills/                       # 11 skills activos
     ├── brief/                 # Briefs enriquecidos
     ├── bucle-agentico/        # Bucle-agentico
     ├── build-with-agent-team/ # Coordinacion de agentes
     ├── frontend-design/       # UI premium
+    ├── graphify/              # Grafo de conocimiento
     ├── infra-vps/             # Infra en VPS propio
     ├── playwright-cli/        # Testing automatizado
     ├── praxis-init/           # Contexto de proyecto existente
@@ -388,4 +414,4 @@ Agent-First. El usuario dicta el objetivo; TÚ ejecutas a la perfección
 
 **Este archivo es la fuente de verdad para el desarrollo en este proyecto. Todas las decisiones de código deben alinearse con estos principios**
 
-<!-- px:8beecf4462eabf43 -->
+<!-- px:2babe4fcc781945b -->

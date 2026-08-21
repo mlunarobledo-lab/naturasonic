@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.NoiseAware
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -76,6 +77,7 @@ fun SettingsScreen(
     onNavigateToVoiceHealth: () -> Unit = {},
     onNavigateToAec: () -> Unit = {},
     onNavigateToExportReport: () -> Unit = {},
+    onNavigateToSoundscape: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -241,6 +243,14 @@ fun SettingsScreen(
                 Icon(Icons.Default.Speed, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Rendimiento")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            TextButton(onClick = onNavigateToSoundscape) {
+                Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Paisaje sonoro")
             }
 
             Spacer(Modifier.height(8.dp))

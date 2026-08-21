@@ -79,6 +79,14 @@ class UserPreferences @Inject constructor(
         prefs[KEY_AEC_MODE] ?: 0
     }
 
+    val dosimetryEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_DOSIMETRY_ENABLED] ?: false
+    }
+
+    val calibrationOffset: Flow<Float> = dataStore.data.map { prefs ->
+        prefs[KEY_CALIBRATION_OFFSET] ?: 94.0f
+    }
+
     suspend fun setCurrentMode(mode: String) {
         dataStore.edit { it[KEY_CURRENT_MODE] = mode }
     }
@@ -135,6 +143,14 @@ class UserPreferences @Inject constructor(
         dataStore.edit { it[KEY_AEC_MODE] = mode.coerceIn(0, 2) }
     }
 
+    suspend fun setDosimetryEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_DOSIMETRY_ENABLED] = enabled }
+    }
+
+    suspend fun setCalibrationOffset(offset: Float) {
+        dataStore.edit { it[KEY_CALIBRATION_OFFSET] = offset.coerceIn(60f, 120f) }
+    }
+
     companion object {
         private val KEY_CURRENT_MODE = stringPreferencesKey("current_mode")
         private val KEY_MASTER_VOLUME = floatPreferencesKey("master_volume")
@@ -150,5 +166,7 @@ class UserPreferences @Inject constructor(
         private val KEY_HEAD_TRACKING_ENABLED = booleanPreferencesKey("head_tracking_enabled")
         private val KEY_HEAD_TRACKING_SENSITIVITY = floatPreferencesKey("head_tracking_sensitivity")
         private val KEY_AEC_MODE = intPreferencesKey("aec_mode")
+        private val KEY_DOSIMETRY_ENABLED = booleanPreferencesKey("dosimetry_enabled")
+        private val KEY_CALIBRATION_OFFSET = floatPreferencesKey("calibration_offset")
     }
 }

@@ -154,6 +154,9 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
                     aecFilter_.process(captureBuffer_.data(), framesToProcess);
                 }
 
+                // Dosimetry reads RAW input (before DSP) for accurate ambient SPL
+                dosimetryAnalyzer_.feedAudio(captureBuffer_.data(), framesToProcess);
+
                 processor_.process(captureBuffer_.data(), framesToProcess);
                 limiter_.process(captureBuffer_.data(), framesToProcess);
 
@@ -278,6 +281,22 @@ void NaturaSonicEngine::stopVoiceAnalyzer() {
 
 VoiceMetrics NaturaSonicEngine::getVoiceMetrics() const {
     return voiceAnalyzer_.getMetrics();
+}
+
+void NaturaSonicEngine::startDosimetry() {
+    dosimetryAnalyzer_.start();
+}
+
+void NaturaSonicEngine::stopDosimetry() {
+    dosimetryAnalyzer_.stop();
+}
+
+DosimetryData NaturaSonicEngine::getDosimetryData() const {
+    return dosimetryAnalyzer_.getData();
+}
+
+void NaturaSonicEngine::setCalibrationOffset(float offsetDb) {
+    dosimetryAnalyzer_.setCalibrationOffset(offsetDb);
 }
 
 void NaturaSonicEngine::openInputStream() {

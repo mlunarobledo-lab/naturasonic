@@ -38,6 +38,7 @@ Por la doctrina Praxis (investigar antes de preguntar), no preguntes nada de est
 - [ ] **Provider activo**: leer `.praxis/config.json#provider` (`claude`/`codex`/`gemini`). Define el memory file objetivo — en Claude es `AGENTS.md`; en Codex/Gemini, el archivo de memoria que ese provider usa (Praxis ya lo dejo en el proyecto, listalo en la raiz). Si no hay config, default `claude` → `AGENTS.md`.
 - [ ] **Estado del memory file**: ¿existe? ¿tiene marcadores `<!-- PRAXIS:*_START/END -->` (proyecto Praxis) o es ajeno del alumno? El contrato de escritura cambia segun el caso (ver `references/contrato-memory-file.md`).
 - [ ] **Tamaño del repo**: `git ls-files | wc -l` (o `find . -type f` excluyendo `node_modules`/`.git`/build). Define cuantos agentes lanzar y si hace falta dividir por capas.
+- [ ] **Grafo de conocimiento (`.graphify/`)**: ¿existe `.graphify/graph.json`? Si si, es tu mejor mapa estructural de arranque: `graphify summary --graph .graphify/graph.json` te da los **god nodes** (los archivos mas conectados = por donde empezar) y las **comunidades** (como se agrupa el sistema) — usalos para dividir el trabajo entre los agentes de dimension. Si no existe y el repo no es trivial, **construirlo con `@.agents/skills/graphify/SKILL.md` es parte natural de este analisis**: da la esqueleto estructural del proyecto en un artefacto persistente que el agente reusara en cada sesion futura (no solo para este INIT).
 - [ ] **Herramientas de equipo disponibles**: si `TeamCreate`/`Agent` no estan (provider no-Claude), degradar a analisis secuencial — ver `references/orquestacion-equipo.md`.
 
 ---
@@ -47,6 +48,8 @@ Por la doctrina Praxis (investigar antes de preguntar), no preguntes nada de est
 ### Paso 1: Mapear el meta-contexto del repo
 
 Antes de lanzar el equipo, hacer un barrido superficial barato para orientar la division del trabajo: leer los manifests de raiz (`package.json`, `requirements.txt`, `go.mod`, `Cargo.toml`, `composer.json`, `pom.xml`, etc.), el `README` si existe, y el arbol de carpetas de primer nivel. Razon: cada agente del equipo arranca con una pista de donde mirar en vez de descubrir el lenguaje desde cero, lo que ahorra contexto y evita solapamiento.
+
+Si hay (o construyes) un **grafo de conocimiento** (`.graphify/`), este barrido se apoya en el: `graphify summary` revela god nodes y comunidades — el esqueleto estructural que dice a cada agente de dimension por donde empezar. El grafo es el mapa; los agentes lo profundizan.
 
 Registrar las **dimensiones** que aplican (un repo sin base de datos no necesita el agente de BD). Las dimensiones canonicas y que cubre cada una viven en `references/analisis-dimensiones.md` — leerlo ahora.
 

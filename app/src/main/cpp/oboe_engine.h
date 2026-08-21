@@ -11,6 +11,7 @@
 #include "whisper_bridge.h"
 #include "voice_analyzer.h"
 #include "aec_filter.h"
+#include "dosimetry_analyzer.h"
 
 struct LatencyStats {
     float dspMinUs = 0;
@@ -53,6 +54,11 @@ public:
     void stopVoiceAnalyzer();
     VoiceMetrics getVoiceMetrics() const;
 
+    void startDosimetry();
+    void stopDosimetry();
+    DosimetryData getDosimetryData() const;
+    void setCalibrationOffset(float offsetDb);
+
     bool initWhisper(const char* modelPath);
     void releaseWhisper();
     void startWhisperCapture();
@@ -78,6 +84,7 @@ private:
     WhisperBridge whisperBridge_;
     VoiceAnalyzer voiceAnalyzer_;
     AecFilter aecFilter_;
+    DosimetryAnalyzer dosimetryAnalyzer_;
     std::atomic<int> aecMode_{kAecOff};
 
     std::vector<float> captureBuffer_;

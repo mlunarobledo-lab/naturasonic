@@ -6,6 +6,7 @@
       "bucle-agentico",
       "build-with-agent-team",
       "frontend-design",
+      "graphify",
       "infra-vps",
       "playwright-cli",
       "praxis-init",
@@ -13,7 +14,7 @@
       "skill-creator",
       "supabase-admin"
     ],
-    "lastUpdated": "2026-08-15T18:08:46.315Z"
+    "lastUpdated": "2026-08-21T02:46:38.755Z"
   },
   "mcps": {
     "managed": [
@@ -34,7 +35,8 @@
       "infra-vps",
       "frontend-design",
       "playwright-cli",
-      "skill-creator"
+      "skill-creator",
+      "graphify"
     ],
     "mcps": [
       "next-devtools",

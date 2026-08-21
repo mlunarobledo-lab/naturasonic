@@ -246,9 +246,13 @@ Si la Directiva esta vacia o solo tiene KEEP, **no hay Fase 0** — entrar direc
 
 ### PASO 2: ENTRAR EN FASE N - MAPEAR CONTEXTO
 
-ANTES de generar subtareas, explorar:
+ANTES de generar subtareas, mapear el contexto real de la fase. **Empieza por el grafo de conocimiento** — es la fuente estructural; el grep y el Read afinan lo que el grafo señala.
 
-**Codebase:**
+**Grafo de conocimiento (`.graphify/`) — primero:**
+- Si existe `.graphify/graph.json`: `graphify query "<tema de la fase>"` para el subgrafo relacionado + `graphify summary` para orientarte, y `graphify review-analysis --files <archivos que la fase tocara> --graph .graphify/graph.json` para ver el **blast-radius** (que se ve afectado, bridge nodes, comunidades impactadas, test-gaps) ANTES de generar subtareas.
+- Si el grafo no existe todavia o esta `stale` (`.graphify/needs_update`, o `branch.json` marca stale): construyelo/actualizalo con `@.claude/skills/graphify/SKILL.md` — barato cuando solo cambio codigo (`--update`, solo AST). Si lo mantuviste fresco, el grafo ya incluye lo construido en fases previas.
+
+**Codebase (afinar sobre lo que el grafo señalo):**
 - Que archivos/componentes existen relacionados?
 - Que patrones usa el proyecto actualmente?
 - Hay codigo que puedo reutilizar?
@@ -263,7 +267,7 @@ ANTES de generar subtareas, explorar:
 - Que puedo asumir que ya existe?
 - Que restricciones tengo?
 
-DESPUES de mapear, generar subtareas especificas y actualizar TodoWrite.
+DESPUES de mapear, generar subtareas especificas y actualizar TodoWrite. Al cerrar la fase, si tocaste codigo, **refresca el grafo** (`graphify <path> --update`) para que la siguiente fase mapee sobre la realidad actualizada.
 
 ### PASO 3: EJECUTAR SUBTAREAS DE LA FASE
 
@@ -295,7 +299,7 @@ El sistema se BLINDA con cada error. Por la Regla 6 sub-regla (b), cuando algo f
 **Protocolo de investigacion (6 pasos en orden — solo escalar tras agotar):**
 
 1. **Leer el error completo + stack trace + logs relevantes.** No saltarse el mensaje. La causa real suele estar en las ultimas 5 lineas del stack o en logs accesorios (Next.js MCP `get_logs`, `console.error`, error responses HTTP completos).
-2. **`grep`/`glob` el codebase por patrones similares ya resueltos.** Buscar el nombre exacto del error, claves del stack trace, identificadores. Si el proyecto ya resolvio algo parecido antes, reutilizar el patron.
+2. **Buscar patrones similares ya resueltos** — grafo primero, grep despues. Si existe `.graphify/graph.json`, `graphify query "<sintoma o modulo>"` para ubicar el componente afectado y lo que lo rodea; luego `grep`/`glob` por el nombre exacto del error, claves del stack trace, identificadores. Si el proyecto ya resolvio algo parecido antes, reutilizar el patron.
 3. **Usar MCPs disponibles para diagnosticar.** `next-devtools` para errores runtime de Next.js, `playwright` para validar visualmente que renderiza, `supabase` para inspeccionar tablas/RLS/queries, etc. Cada MCP es una herramienta de diagnostico — no esperar a que el usuario diga "intenta con X".
 4. **`WebSearch` + `WebFetch` para docs oficiales y soluciones.** Buscar el mensaje literal del error en docs oficiales del framework (Next.js, Supabase, Vercel AI SDK, etc.) y en GitHub issues del repo del paquete. Para errores de versiones especificas, anclar la busqueda con la version (`<error message> next 16.0.1`).
 5. **Leer aprendizajes en `CLAUDE.md`** (seccion Aprendizajes Auto-Refuerzo) por si el mismo error ya fue resuelto antes en otro PRP. Cada aprendizaje viejo es un atajo.
@@ -441,7 +445,7 @@ Commit + push hechos.
 
 ## Uso de MCPs en por fases
 
-Los MCPs se usan **durante la ejecucion**, no como pasos del plan. **Mapeo de contexto**: `supabase` (`list_tables`, `execute_sql` para verificar estructura) + codebase (Grep/Glob/Read para patrones existentes). **Ejecucion de subtareas**: `next-devtools` (`get_errors`, `get_logs` tras escribir codigo), `playwright` (`screenshot`, `click/fill` para validar UI/flujos), `supabase` (`apply_migration`, `execute_sql` para BD).
+Los MCPs se usan **durante la ejecucion**, no como pasos del plan. **Mapeo de contexto**: el **grafo de conocimiento** (`.graphify/` — `graphify query`/`summary`/`review-analysis`) como fuente estructural primaria + `supabase` (`list_tables`, `execute_sql` para verificar estructura) + codebase (Grep/Glob/Read para afinar los patrones que el grafo señala). **Ejecucion de subtareas**: `next-devtools` (`get_errors`, `get_logs` tras escribir codigo), `playwright` (`screenshot`, `click/fill` para validar UI/flujos), `supabase` (`apply_migration`, `execute_sql` para BD).
 
 ---
 
