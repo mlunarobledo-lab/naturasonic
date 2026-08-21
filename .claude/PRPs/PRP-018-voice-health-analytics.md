@@ -1,6 +1,6 @@
 # PRP-018: Pipeline de Análisis y Diagnóstico de Voz (Voice Health Analytics)
 
-> **Estado**: EN PROGRESO
+> **Estado**: COMPLETADO
 > **Fecha**: 2026-08-17
 > **Proyecto**: NaturaSonic
 

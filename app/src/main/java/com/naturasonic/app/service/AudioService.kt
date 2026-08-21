@@ -96,6 +96,7 @@ class AudioService : Service() {
             leAudioBroadcastManager.checkBroadcastSupport()
             leAudioBroadcastManager.connectProfile()
             startHeadTrackingObserver()
+            audioEngine.startVoiceAnalyzer()
         }
     }
 
@@ -162,6 +163,7 @@ class AudioService : Service() {
     }
 
     private fun stopAudio() {
+        audioEngine.stopVoiceAnalyzer()
         headTrackingJob?.cancel()
         headTrackingManager.stop()
         audioEngine.setHeadTrackingEnabled(false)
@@ -270,6 +272,7 @@ class AudioService : Service() {
     }
 
     override fun onDestroy() {
+        audioEngine.stopVoiceAnalyzer()
         headTrackingJob?.cancel()
         headTrackingManager.stop()
         if (leAudioBroadcastManager.broadcastState.value is BroadcastState.Active) {
