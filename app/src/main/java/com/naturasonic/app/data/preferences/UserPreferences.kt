@@ -87,6 +87,18 @@ class UserPreferences @Inject constructor(
         prefs[KEY_CALIBRATION_OFFSET] ?: 94.0f
     }
 
+    val attentionAgcEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_ATTENTION_AGC_ENABLED] ?: false
+    }
+
+    val speechBoostDb: Flow<Float> = dataStore.data.map { prefs ->
+        prefs[KEY_SPEECH_BOOST_DB] ?: 3.0f
+    }
+
+    val alertAttenuationDb: Flow<Float> = dataStore.data.map { prefs ->
+        prefs[KEY_ALERT_ATTENUATION_DB] ?: 4.0f
+    }
+
     suspend fun setCurrentMode(mode: String) {
         dataStore.edit { it[KEY_CURRENT_MODE] = mode }
     }
@@ -151,6 +163,18 @@ class UserPreferences @Inject constructor(
         dataStore.edit { it[KEY_CALIBRATION_OFFSET] = offset.coerceIn(60f, 120f) }
     }
 
+    suspend fun setAttentionAgcEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_ATTENTION_AGC_ENABLED] = enabled }
+    }
+
+    suspend fun setSpeechBoostDb(db: Float) {
+        dataStore.edit { it[KEY_SPEECH_BOOST_DB] = db.coerceIn(1f, 6f) }
+    }
+
+    suspend fun setAlertAttenuationDb(db: Float) {
+        dataStore.edit { it[KEY_ALERT_ATTENUATION_DB] = db.coerceIn(1f, 8f) }
+    }
+
     companion object {
         private val KEY_CURRENT_MODE = stringPreferencesKey("current_mode")
         private val KEY_MASTER_VOLUME = floatPreferencesKey("master_volume")
@@ -168,5 +192,8 @@ class UserPreferences @Inject constructor(
         private val KEY_AEC_MODE = intPreferencesKey("aec_mode")
         private val KEY_DOSIMETRY_ENABLED = booleanPreferencesKey("dosimetry_enabled")
         private val KEY_CALIBRATION_OFFSET = floatPreferencesKey("calibration_offset")
+        private val KEY_ATTENTION_AGC_ENABLED = booleanPreferencesKey("attention_agc_enabled")
+        private val KEY_SPEECH_BOOST_DB = floatPreferencesKey("speech_boost_db")
+        private val KEY_ALERT_ATTENUATION_DB = floatPreferencesKey("alert_attenuation_db")
     }
 }

@@ -145,6 +145,9 @@ void AudioProcessor::applyEqualizer(float* buffer, int numFrames, const EqSnapsh
         if (snap.headTrackingEnabled) {
             effectiveGain += snap.spatialGainOffsets[band];
         }
+        if (snap.attentionAgcEnabled) {
+            effectiveGain += snap.attentionGainOffsets[band];
+        }
         if (std::abs(effectiveGain) < 0.1f) continue;
 
         for (int i = 0; i < numFrames; i++) {
@@ -192,13 +195,53 @@ void AudioProcessor::applyAdaptiveNoiseGate(float* buffer, int numFrames, int mo
     }
 }
 
+void AudioProcessor::setAttentionAgcEnabled(bool enabled) {
+    std::lock_guard<std::mutex> lock(eqWriteMutex_);
+    int readIdx = activeEqIndex_.load(std::memory_order_acquire);
+    int writeIdx = 1 - readIdx;
+
+    eqSnapshots_[writeIdx] = eqSnapshots_[readIdx];
+    eqSnapshots_[writeIdx].attentionAgcEnabled = enabled;
+    if (!enabled) {
+        for (int i = 0; i < kMaxEqBands; i++) {
+            eqSnapshots_[writeIdx].attentionGainOffsets[i] = 0.0f;
+        }
+    }
+    computeEqCoefficients(eqSnapshots_[writeIdx]);
+
+    activeEqIndex_.store(writeIdx, std::memory_order_release);
+}
+
+void AudioProcessor::setAttentionGainOffsets(const float* offsets, int count) {
+    std::lock_guard<std::mutex> lock(eqWriteMutex_);
+    int readIdx = activeEqIndex_.load(std::memory_order_acquire);
+    int writeIdx = 1 - readIdx;
+
+    eqSnapshots_[writeIdx] = eqSnapshots_[readIdx];
+    EqSnapshot& snap = eqSnapshots_[writeIdx];
+
+    if (!snap.attentionAgcEnabled) return;
+
+    int n = std::min(count, kMaxEqBands);
+    for (int i = 0; i < n; i++) {
+        snap.attentionGainOffsets[i] = std::clamp(offsets[i], -12.0f, 12.0f);
+    }
+    computeEqCoefficients(snap);
+
+    activeEqIndex_.store(writeIdx, std::memory_order_release);
+}
+
 void AudioProcessor::computeEqCoefficients(EqSnapshot& snap) {
     for (int i = 0; i < snap.bandCount; i++) {
         float f0 = kCenterFreqs[i];
         float gainDb = snap.gains[i];
         if (snap.headTrackingEnabled) {
-            gainDb = std::clamp(gainDb + snap.spatialGainOffsets[i], -12.0f, 12.0f);
+            gainDb += snap.spatialGainOffsets[i];
         }
+        if (snap.attentionAgcEnabled) {
+            gainDb += snap.attentionGainOffsets[i];
+        }
+        gainDb = std::clamp(gainDb, -12.0f, 12.0f);
         float Q = 1.0f;
 
         float A = std::pow(10.0f, gainDb / 40.0f);

@@ -25,6 +25,7 @@ import com.naturasonic.app.ui.screens.transcription.TranscriptionViewModel
 import com.naturasonic.app.ui.screens.voicehealth.VoiceHealthScreen
 import com.naturasonic.app.ui.screens.aec.AecSettingsScreen
 import com.naturasonic.app.ui.screens.export.ExportReportScreen
+import com.naturasonic.app.ui.screens.attention.AttentionAgcScreen
 import com.naturasonic.app.ui.screens.soundscape.SoundscapeAnalyticsScreen
 
 object Routes {
@@ -43,6 +44,7 @@ object Routes {
     const val AEC_SETTINGS = "aec_settings"
     const val EXPORT_REPORT = "export_report"
     const val SOUNDSCAPE = "soundscape"
+    const val ATTENTION_AGC = "attention_agc"
 }
 
 @Composable
@@ -120,6 +122,9 @@ fun NaturaSonicNavHost() {
                 },
                 onNavigateToSoundscape = {
                     navController.navigate(Routes.SOUNDSCAPE)
+                },
+                onNavigateToAttentionAgc = {
+                    navController.navigate(Routes.ATTENTION_AGC)
                 }
             )
         }
@@ -189,6 +194,12 @@ fun NaturaSonicNavHost() {
 
         composable(Routes.SOUNDSCAPE) {
             SoundscapeAnalyticsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.ATTENTION_AGC) {
+            AttentionAgcScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

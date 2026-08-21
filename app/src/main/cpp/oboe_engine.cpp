@@ -98,6 +98,14 @@ void NaturaSonicEngine::setHeadTrackingAngles(float azimuthDeg, float pitchDeg, 
     processor_.setHeadTrackingAngles(azimuthDeg, pitchDeg, sensitivity);
 }
 
+void NaturaSonicEngine::setAttentionAgcEnabled(bool enabled) {
+    processor_.setAttentionAgcEnabled(enabled);
+}
+
+void NaturaSonicEngine::setAttentionGainOffsets(const float* offsets, int count) {
+    processor_.setAttentionGainOffsets(offsets, count);
+}
+
 void NaturaSonicEngine::setAecMode(int mode) {
     int clamped = std::clamp(mode, 0, 2);
     aecMode_.store(clamped, std::memory_order_relaxed);

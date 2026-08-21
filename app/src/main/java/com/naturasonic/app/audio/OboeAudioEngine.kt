@@ -64,6 +64,18 @@ class OboeAudioEngine @Inject constructor() {
         }
     }
 
+    fun setAttentionAgcEnabled(enabled: Boolean) {
+        if (engineHandle != 0L) {
+            nativeSetAttentionAgcEnabled(engineHandle, enabled)
+        }
+    }
+
+    fun setAttentionGainOffsets(offsets: FloatArray) {
+        if (engineHandle != 0L) {
+            nativeSetAttentionGainOffsets(engineHandle, offsets)
+        }
+    }
+
     fun setHeadTrackingEnabled(enabled: Boolean) {
         if (engineHandle != 0L) {
             nativeSetHeadTrackingEnabled(engineHandle, enabled)
@@ -164,6 +176,8 @@ class OboeAudioEngine @Inject constructor() {
     private external fun nativeSetNoiseGateMode(engineHandle: Long, mode: Int)
     private external fun nativeSetVolumeLimitDb(engineHandle: Long, limitDb: Float)
     private external fun nativeSetOutputMuted(engineHandle: Long, muted: Boolean)
+    private external fun nativeSetAttentionAgcEnabled(engineHandle: Long, enabled: Boolean)
+    private external fun nativeSetAttentionGainOffsets(engineHandle: Long, offsets: FloatArray)
     private external fun nativeSetHeadTrackingEnabled(engineHandle: Long, enabled: Boolean)
     private external fun nativeSetHeadTrackingAngles(engineHandle: Long, azimuthDeg: Float, pitchDeg: Float, sensitivity: Float)
     private external fun nativeApplyProfile(engineHandle: Long, bands: FloatArray, amplification: Float, noiseGateMode: Int)

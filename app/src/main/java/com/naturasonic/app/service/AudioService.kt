@@ -14,6 +14,7 @@ import com.naturasonic.app.NaturaSonicApp
 import com.naturasonic.app.R
 import com.naturasonic.app.audio.AudioModeManager
 import com.naturasonic.app.audio.AudioSessionManager
+import com.naturasonic.app.audio.AttentionController
 import com.naturasonic.app.audio.DosimetryManager
 import com.naturasonic.app.audio.HeadTrackingManager
 import com.naturasonic.app.audio.HeadTrackingState
@@ -60,6 +61,7 @@ class AudioService : Service() {
     @Inject lateinit var leAudioBroadcastManager: LeAudioBroadcastManager
     @Inject lateinit var headTrackingManager: HeadTrackingManager
     @Inject lateinit var dosimetryManager: DosimetryManager
+    @Inject lateinit var attentionController: AttentionController
 
     private val binder = AudioBinder()
     private val serviceScope = CoroutineScope(Dispatchers.Default + Job())
@@ -70,6 +72,7 @@ class AudioService : Service() {
     private var headTrackingJob: Job? = null
     private var aecObserverJob: Job? = null
     private var dosimetryObserverJob: Job? = null
+    private var attentionObserverJob: Job? = null
 
     inner class AudioBinder : Binder() {
         fun getService(): AudioService = this@AudioService
@@ -102,6 +105,7 @@ class AudioService : Service() {
             startHeadTrackingObserver()
             startAecObserver()
             startDosimetryObserver()
+            startAttentionObserver()
             audioEngine.startVoiceAnalyzer()
         }
     }
@@ -186,6 +190,27 @@ class AudioService : Service() {
         }
     }
 
+    private fun startAttentionObserver() {
+        attentionObserverJob?.cancel()
+        attentionObserverJob = serviceScope.launch {
+            combine(
+                userPreferences.attentionAgcEnabled,
+                userPreferences.speechBoostDb,
+                userPreferences.alertAttenuationDb
+            ) { enabled, boost, attenuation ->
+                Triple(enabled, boost, attenuation)
+            }.collect { (enabled, boost, attenuation) ->
+                if (enabled && !attentionController.isActive) {
+                    attentionController.start(serviceScope, boost, attenuation)
+                } else if (enabled && attentionController.isActive) {
+                    attentionController.updateParams(boost, attenuation)
+                } else if (!enabled && attentionController.isActive) {
+                    attentionController.stop()
+                }
+            }
+        }
+    }
+
     private fun startAecObserver() {
         aecObserverJob?.cancel()
         aecObserverJob = serviceScope.launch {
@@ -203,6 +228,8 @@ class AudioService : Service() {
 
     private fun stopAudio() {
         audioEngine.stopVoiceAnalyzer()
+        attentionObserverJob?.cancel()
+        attentionController.stop()
         dosimetryObserverJob?.cancel()
         dosimetryManager.stopSession()
         aecObserverJob?.cancel()
@@ -316,6 +343,8 @@ class AudioService : Service() {
 
     override fun onDestroy() {
         audioEngine.stopVoiceAnalyzer()
+        attentionObserverJob?.cancel()
+        attentionController.stop()
         dosimetryObserverJob?.cancel()
         dosimetryManager.stopSession()
         headTrackingJob?.cancel()

@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.EnergySavingsLeaf
 import androidx.compose.material.icons.filled.HearingDisabled
 import androidx.compose.material.icons.filled.NoiseAware
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
@@ -78,6 +79,7 @@ fun SettingsScreen(
     onNavigateToAec: () -> Unit = {},
     onNavigateToExportReport: () -> Unit = {},
     onNavigateToSoundscape: () -> Unit = {},
+    onNavigateToAttentionAgc: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -243,6 +245,14 @@ fun SettingsScreen(
                 Icon(Icons.Default.Speed, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Rendimiento")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            TextButton(onClick = onNavigateToAttentionAgc) {
+                Icon(Icons.Default.GraphicEq, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Ajuste inteligente")
             }
 
             Spacer(Modifier.height(8.dp))

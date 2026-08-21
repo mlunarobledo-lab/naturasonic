@@ -38,6 +38,8 @@ public:
     void setOutputMuted(bool muted);
     void setHeadTrackingEnabled(bool enabled);
     void setHeadTrackingAngles(float azimuthDeg, float pitchDeg, float sensitivity);
+    void setAttentionAgcEnabled(bool enabled);
+    void setAttentionGainOffsets(const float* offsets, int count);
 
     static constexpr int kAecOff = 0;
     static constexpr int kAecSoftware = 1;

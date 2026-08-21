@@ -17,6 +17,8 @@ public:
     void applyProfile(const float* bands, int count, float amplification, int noiseGateMode);
     void setHeadTrackingEnabled(bool enabled);
     void setHeadTrackingAngles(float azimuthDeg, float pitchDeg, float sensitivity);
+    void setAttentionAgcEnabled(bool enabled);
+    void setAttentionGainOffsets(const float* offsets, int count);
 
 private:
     static constexpr int kMaxEqBands = 10;
@@ -43,6 +45,8 @@ private:
         int noiseGateMode = kNoiseGateOff;
         float spatialGainOffsets[kMaxEqBands] = {};
         bool headTrackingEnabled = false;
+        float attentionGainOffsets[kMaxEqBands] = {};
+        bool attentionAgcEnabled = false;
     };
 
     void applyAmplification(float* buffer, int numFrames, float level);
