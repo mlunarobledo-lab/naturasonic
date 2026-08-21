@@ -31,14 +31,14 @@
 ## Qué
 
 ### Criterios de éxito
-- [ ] `VoiceAnalyzer` clase C++ con detección de pitch por autocorrelación (YIN simplificado) y cálculo de Jitter% y Shimmer%
-- [ ] Ring buffer secundario (`voiceBuffer_`) de 2s (96000 muestras a 48kHz) en `NaturaSonicEngine`, alimentado desde `onAudioReady`
-- [ ] Thread dedicado de análisis con mutex propio — no bloquea el audio thread
-- [ ] Struct `VoiceMetrics` (pitchHz, jitterPercent, shimmerPercent, isVoiced) expuesto vía JNI
-- [ ] Polling JNI getter `nativeGetVoiceMetrics()` desde Kotlin — patrón análogo a `getLatencyStats()`
-- [ ] `VoiceHealthScreen` Compose con barras de Jitter/Shimmer (umbrales normal/alerta/crítico), gráfico de tendencia temporal Canvas, indicador de pitch actual
-- [ ] Ruta `VOICE_HEALTH` en NavGraph, accesible desde Settings → "Salud vocal"
-- [ ] Build exitoso sin cambios en dependencias nativas ni AGP
+- [x] `VoiceAnalyzer` clase C++ con detección de pitch por autocorrelación (YIN simplificado) y cálculo de Jitter% y Shimmer%
+- [x] Ring buffer secundario (`voiceBuffer_`) de 2s (96000 muestras a 48kHz) en `NaturaSonicEngine`, alimentado desde `onAudioReady`
+- [x] Thread dedicado de análisis con mutex propio — no bloquea el audio thread
+- [x] Struct `VoiceMetrics` (pitchHz, jitterPercent, shimmerPercent, isVoiced) expuesto vía JNI
+- [x] Polling JNI getter `nativeGetVoiceMetrics()` desde Kotlin — patrón análogo a `getLatencyStats()`
+- [x] `VoiceHealthScreen` Compose con barras de Jitter/Shimmer (umbrales normal/alerta/crítico), gráfico de tendencia temporal Canvas, indicador de pitch actual
+- [x] Ruta `VOICE_HEALTH` en NavGraph, accesible desde Settings → "Salud vocal"
+- [x] Build exitoso sin cambios en dependencias nativas ni AGP
 
 ### Comportamiento esperado
 
@@ -179,6 +179,16 @@
 ## Aprendizajes
 
 > Esta sección crece con cada error.
+
+### 2026-08-20: Alignment.Baseline no existe en Compose Row
+- **Error**: `Row(verticalAlignment = Alignment.Baseline)` causa `Unresolved reference 'Baseline'`. En Compose, `Row.verticalAlignment` acepta `Alignment.Vertical` (Top, CenterVertically, Bottom) — no existe `Alignment.Baseline`.
+- **Fix**: Usar `Alignment.Bottom` para alineación inferior de texto con diferentes tamaños de tipografía.
+- **Aplicar en**: Cualquier pantalla Compose que necesite alinear texto de diferente tamaño en un Row.
+
+### 2026-08-20: VoiceAnalyzer ring buffer integrado directamente en la clase (no en NaturaSonicEngine)
+- **Error**: El PRP originalmente describía un `voiceBuffer_` en NaturaSonicEngine. En la implementación se decidió que VoiceAnalyzer gestiona su propio ring buffer internamente (como WhisperBridge gestiona su propio buffer), simplificando la integración.
+- **Fix**: VoiceAnalyzer tiene su propio `ringBuffer_` de 96000 float con `bufferMutex_` dedicado. NaturaSonicEngine solo llama `voiceAnalyzer_.feedAudio()` desde `onAudioReady` — escritura rápida al ring buffer sin bloqueo.
+- **Aplicar en**: Patrón confirmado: cada consumidor pesado de audio gestiona su propio buffer con su propio mutex. NaturaSonicEngine es el dispatcher, no el dueño de los buffers.
 
 ---
 
