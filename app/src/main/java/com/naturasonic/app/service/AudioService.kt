@@ -66,6 +66,7 @@ class AudioService : Service() {
     private var profileObserverJob: Job? = null
     private var btMonitorJob: Job? = null
     private var headTrackingJob: Job? = null
+    private var aecObserverJob: Job? = null
 
     inner class AudioBinder : Binder() {
         fun getService(): AudioService = this@AudioService
@@ -96,6 +97,7 @@ class AudioService : Service() {
             leAudioBroadcastManager.checkBroadcastSupport()
             leAudioBroadcastManager.connectProfile()
             startHeadTrackingObserver()
+            startAecObserver()
             audioEngine.startVoiceAnalyzer()
         }
     }
@@ -162,8 +164,25 @@ class AudioService : Service() {
         }
     }
 
+    private fun startAecObserver() {
+        aecObserverJob?.cancel()
+        aecObserverJob = serviceScope.launch {
+            userPreferences.aecMode.collect { mode ->
+                audioEngine.setAecMode(mode)
+                val sessionId = audioEngine.getAudioSessionId()
+                if (mode == 2 && sessionId != 0) {
+                    audioSessionManager.setAecEnabled(sessionId, true)
+                } else {
+                    audioSessionManager.setAecEnabled(0, false)
+                }
+            }
+        }
+    }
+
     private fun stopAudio() {
         audioEngine.stopVoiceAnalyzer()
+        aecObserverJob?.cancel()
+        audioEngine.setAecMode(0)
         headTrackingJob?.cancel()
         headTrackingManager.stop()
         audioEngine.setHeadTrackingEnabled(false)

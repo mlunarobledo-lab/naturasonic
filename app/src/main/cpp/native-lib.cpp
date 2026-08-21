@@ -203,6 +203,25 @@ Java_com_naturasonic_app_audio_OboeAudioEngine_nativeGetVoiceMetrics(
 }
 
 JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetAecMode(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jint mode) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setAecMode(mode);
+    }
+}
+
+JNIEXPORT jint JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeGetAudioSessionId(
+        JNIEnv* env, jobject thiz, jlong engineHandle) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        return eng->getAudioSessionId();
+    }
+    return 0;
+}
+
+JNIEXPORT void JNICALL
 Java_com_naturasonic_app_audio_OboeAudioEngine_nativeDestroy(
         JNIEnv* env, jobject thiz, jlong engineHandle) {
     auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);

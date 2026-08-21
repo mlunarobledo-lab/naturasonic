@@ -98,6 +98,20 @@ void NaturaSonicEngine::setHeadTrackingAngles(float azimuthDeg, float pitchDeg, 
     processor_.setHeadTrackingAngles(azimuthDeg, pitchDeg, sensitivity);
 }
 
+void NaturaSonicEngine::setAecMode(int mode) {
+    int clamped = std::clamp(mode, 0, 2);
+    aecMode_.store(clamped, std::memory_order_relaxed);
+    aecFilter_.setEnabled(clamped == kAecSoftware);
+    LOGI("AEC mode: %d", clamped);
+}
+
+int NaturaSonicEngine::getAudioSessionId() const {
+    if (inputStream_) {
+        return inputStream_->getSessionId();
+    }
+    return 0;
+}
+
 std::vector<float> NaturaSonicEngine::getLatestAudioBuffer() {
     std::lock_guard<std::mutex> lock(bufferMutex_);
     return latestBuffer_;
@@ -136,6 +150,10 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
                 ATrace_beginSection("NaturaSonic::DSP");
                 auto dspStart = std::chrono::steady_clock::now();
 
+                if (aecMode_.load(std::memory_order_relaxed) == kAecSoftware) {
+                    aecFilter_.process(captureBuffer_.data(), framesToProcess);
+                }
+
                 processor_.process(captureBuffer_.data(), framesToProcess);
                 limiter_.process(captureBuffer_.data(), framesToProcess);
 
@@ -152,6 +170,10 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
                 } else {
                     std::memcpy(output, captureBuffer_.data(),
                                framesToProcess * kChannelCount * sizeof(float));
+                }
+
+                if (aecMode_.load(std::memory_order_relaxed) == kAecSoftware) {
+                    aecFilter_.feedReference(captureBuffer_.data(), framesToProcess);
                 }
 
                 {

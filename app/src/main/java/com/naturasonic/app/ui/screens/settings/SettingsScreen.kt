@@ -73,6 +73,7 @@ fun SettingsScreen(
     onNavigateToAudioSharing: () -> Unit = {},
     onNavigateToHeadTracking: () -> Unit = {},
     onNavigateToVoiceHealth: () -> Unit = {},
+    onNavigateToAec: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -214,6 +215,14 @@ fun SettingsScreen(
                 Icon(Icons.Default.NoiseAware, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Control de ruido")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            TextButton(onClick = onNavigateToAec) {
+                Icon(Icons.Default.NoiseAware, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Cancelación de eco")
             }
 
             Spacer(Modifier.height(8.dp))

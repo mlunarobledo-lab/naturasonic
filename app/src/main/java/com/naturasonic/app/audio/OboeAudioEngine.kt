@@ -114,6 +114,17 @@ class OboeAudioEngine @Inject constructor() {
         return nativeGetVoiceMetrics(engineHandle)
     }
 
+    fun setAecMode(mode: Int) {
+        if (engineHandle != 0L) {
+            nativeSetAecMode(engineHandle, mode.coerceIn(0, 2))
+        }
+    }
+
+    fun getAudioSessionId(): Int {
+        if (engineHandle == 0L) return 0
+        return nativeGetAudioSessionId(engineHandle)
+    }
+
     fun destroy() {
         if (engineHandle != 0L) {
             nativeDestroy(engineHandle)
@@ -139,6 +150,8 @@ class OboeAudioEngine @Inject constructor() {
     private external fun nativeStartVoiceAnalyzer(engineHandle: Long)
     private external fun nativeStopVoiceAnalyzer(engineHandle: Long)
     private external fun nativeGetVoiceMetrics(engineHandle: Long): FloatArray?
+    private external fun nativeSetAecMode(engineHandle: Long, mode: Int)
+    private external fun nativeGetAudioSessionId(engineHandle: Long): Int
     private external fun nativeDestroy(engineHandle: Long)
 
     companion object {

@@ -10,6 +10,7 @@
 #include "volume_limiter.h"
 #include "whisper_bridge.h"
 #include "voice_analyzer.h"
+#include "aec_filter.h"
 
 struct LatencyStats {
     float dspMinUs = 0;
@@ -36,6 +37,13 @@ public:
     void setOutputMuted(bool muted);
     void setHeadTrackingEnabled(bool enabled);
     void setHeadTrackingAngles(float azimuthDeg, float pitchDeg, float sensitivity);
+
+    static constexpr int kAecOff = 0;
+    static constexpr int kAecSoftware = 1;
+    static constexpr int kAecSystem = 2;
+
+    void setAecMode(int mode);
+    int getAudioSessionId() const;
 
     std::vector<float> getLatestAudioBuffer();
     std::vector<float> getYamnetAudioBuffer();
@@ -69,6 +77,8 @@ private:
     VolumeLimiter limiter_;
     WhisperBridge whisperBridge_;
     VoiceAnalyzer voiceAnalyzer_;
+    AecFilter aecFilter_;
+    std::atomic<int> aecMode_{kAecOff};
 
     std::vector<float> captureBuffer_;
     std::vector<float> latestBuffer_;

@@ -75,6 +75,10 @@ class UserPreferences @Inject constructor(
         prefs[KEY_HEAD_TRACKING_SENSITIVITY] ?: 0.6f
     }
 
+    val aecMode: Flow<Int> = dataStore.data.map { prefs ->
+        prefs[KEY_AEC_MODE] ?: 0
+    }
+
     suspend fun setCurrentMode(mode: String) {
         dataStore.edit { it[KEY_CURRENT_MODE] = mode }
     }
@@ -127,6 +131,10 @@ class UserPreferences @Inject constructor(
         dataStore.edit { it[KEY_HEAD_TRACKING_SENSITIVITY] = sensitivity.coerceIn(0f, 1f) }
     }
 
+    suspend fun setAecMode(mode: Int) {
+        dataStore.edit { it[KEY_AEC_MODE] = mode.coerceIn(0, 2) }
+    }
+
     companion object {
         private val KEY_CURRENT_MODE = stringPreferencesKey("current_mode")
         private val KEY_MASTER_VOLUME = floatPreferencesKey("master_volume")
@@ -141,5 +149,6 @@ class UserPreferences @Inject constructor(
         private val KEY_SELECTED_PROFILE_ID = stringPreferencesKey("selected_profile_id")
         private val KEY_HEAD_TRACKING_ENABLED = booleanPreferencesKey("head_tracking_enabled")
         private val KEY_HEAD_TRACKING_SENSITIVITY = floatPreferencesKey("head_tracking_sensitivity")
+        private val KEY_AEC_MODE = intPreferencesKey("aec_mode")
     }
 }

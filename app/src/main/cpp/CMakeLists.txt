@@ -41,6 +41,7 @@ add_library(naturasonic SHARED
     volume_limiter.cpp
     whisper_bridge.cpp
     voice_analyzer.cpp
+    aec_filter.cpp
 )
 
 target_include_directories(naturasonic PRIVATE

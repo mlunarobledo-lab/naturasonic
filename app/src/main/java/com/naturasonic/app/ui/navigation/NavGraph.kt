@@ -23,6 +23,7 @@ import com.naturasonic.app.ui.screens.headtracking.HeadTrackingScreen
 import com.naturasonic.app.ui.screens.transcription.TranscriptionScreen
 import com.naturasonic.app.ui.screens.transcription.TranscriptionViewModel
 import com.naturasonic.app.ui.screens.voicehealth.VoiceHealthScreen
+import com.naturasonic.app.ui.screens.aec.AecSettingsScreen
 
 object Routes {
     const val ONBOARDING = "onboarding"
@@ -37,6 +38,7 @@ object Routes {
     const val AUDIO_SHARING = "audio_sharing"
     const val HEAD_TRACKING = "head_tracking"
     const val VOICE_HEALTH = "voice_health"
+    const val AEC_SETTINGS = "aec_settings"
 }
 
 @Composable
@@ -105,6 +107,9 @@ fun NaturaSonicNavHost() {
                 },
                 onNavigateToVoiceHealth = {
                     navController.navigate(Routes.VOICE_HEALTH)
+                },
+                onNavigateToAec = {
+                    navController.navigate(Routes.AEC_SETTINGS)
                 }
             )
         }
@@ -153,6 +158,12 @@ fun NaturaSonicNavHost() {
 
         composable(Routes.VOICE_HEALTH) {
             VoiceHealthScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.AEC_SETTINGS) {
+            AecSettingsScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
