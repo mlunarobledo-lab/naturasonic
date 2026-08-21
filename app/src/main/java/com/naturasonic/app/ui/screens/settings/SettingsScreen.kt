@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.CellTower
 import androidx.compose.material.icons.filled.MyLocation
@@ -71,6 +72,7 @@ fun SettingsScreen(
     onNavigateToEco: () -> Unit = {},
     onNavigateToAudioSharing: () -> Unit = {},
     onNavigateToHeadTracking: () -> Unit = {},
+    onNavigateToVoiceHealth: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -180,6 +182,14 @@ fun SettingsScreen(
                 Icon(Icons.Default.MyLocation, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Enfoque direccional")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            TextButton(onClick = onNavigateToVoiceHealth) {
+                Icon(Icons.Default.Mic, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Salud vocal")
             }
 
             Spacer(Modifier.height(8.dp))

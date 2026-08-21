@@ -162,6 +162,9 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
 
                 whisperBridge_.feedAudio(captureBuffer_.data(), framesToProcess);
 
+                voiceAnalyzer_.feedAudio(captureBuffer_.data(),
+                                         framesToProcess);
+
                 {
                     std::lock_guard<std::mutex> lock(yamnetMutex_);
                     for (int i = 0; i < framesToProcess; i++) {
@@ -241,6 +244,18 @@ LatencyStats NaturaSonicEngine::getLatencyStats() const {
     stats.dspMaxUs = maxVal;
     stats.dspAvgUs = sum / static_cast<float>(count);
     return stats;
+}
+
+void NaturaSonicEngine::startVoiceAnalyzer() {
+    voiceAnalyzer_.start();
+}
+
+void NaturaSonicEngine::stopVoiceAnalyzer() {
+    voiceAnalyzer_.stop();
+}
+
+VoiceMetrics NaturaSonicEngine::getVoiceMetrics() const {
+    return voiceAnalyzer_.getMetrics();
 }
 
 void NaturaSonicEngine::openInputStream() {

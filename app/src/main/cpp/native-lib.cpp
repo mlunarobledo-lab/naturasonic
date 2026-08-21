@@ -170,6 +170,39 @@ Java_com_naturasonic_app_audio_OboeAudioEngine_nativeGetLatencyStats(
 }
 
 JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeStartVoiceAnalyzer(
+        JNIEnv* env, jobject thiz, jlong engineHandle) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->startVoiceAnalyzer();
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeStopVoiceAnalyzer(
+        JNIEnv* env, jobject thiz, jlong engineHandle) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->stopVoiceAnalyzer();
+    }
+}
+
+JNIEXPORT jfloatArray JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeGetVoiceMetrics(
+        JNIEnv* env, jobject thiz, jlong engineHandle) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (!eng) return nullptr;
+
+    auto metrics = eng->getVoiceMetrics();
+    jfloatArray result = env->NewFloatArray(4);
+    float data[4] = {metrics.pitchHz, metrics.jitterPercent,
+                     metrics.shimmerPercent,
+                     metrics.isVoiced ? 1.0f : 0.0f};
+    env->SetFloatArrayRegion(result, 0, 4, data);
+    return result;
+}
+
+JNIEXPORT void JNICALL
 Java_com_naturasonic_app_audio_OboeAudioEngine_nativeDestroy(
         JNIEnv* env, jobject thiz, jlong engineHandle) {
     auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);

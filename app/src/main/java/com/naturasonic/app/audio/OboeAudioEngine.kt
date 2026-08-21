@@ -97,6 +97,23 @@ class OboeAudioEngine @Inject constructor() {
         return nativeGetLatencyStats(engineHandle)
     }
 
+    fun startVoiceAnalyzer() {
+        if (engineHandle != 0L) {
+            nativeStartVoiceAnalyzer(engineHandle)
+        }
+    }
+
+    fun stopVoiceAnalyzer() {
+        if (engineHandle != 0L) {
+            nativeStopVoiceAnalyzer(engineHandle)
+        }
+    }
+
+    fun getVoiceMetrics(): FloatArray? {
+        if (engineHandle == 0L) return null
+        return nativeGetVoiceMetrics(engineHandle)
+    }
+
     fun destroy() {
         if (engineHandle != 0L) {
             nativeDestroy(engineHandle)
@@ -119,6 +136,9 @@ class OboeAudioEngine @Inject constructor() {
     private external fun nativeGetAudioBuffer(engineHandle: Long): FloatArray?
     private external fun nativeGetYamnetAudioBuffer(engineHandle: Long): FloatArray?
     private external fun nativeGetLatencyStats(engineHandle: Long): FloatArray?
+    private external fun nativeStartVoiceAnalyzer(engineHandle: Long)
+    private external fun nativeStopVoiceAnalyzer(engineHandle: Long)
+    private external fun nativeGetVoiceMetrics(engineHandle: Long): FloatArray?
     private external fun nativeDestroy(engineHandle: Long)
 
     companion object {

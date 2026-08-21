@@ -9,6 +9,7 @@
 #include "audio_processor.h"
 #include "volume_limiter.h"
 #include "whisper_bridge.h"
+#include "voice_analyzer.h"
 
 struct LatencyStats {
     float dspMinUs = 0;
@@ -40,6 +41,10 @@ public:
     std::vector<float> getYamnetAudioBuffer();
     LatencyStats getLatencyStats() const;
 
+    void startVoiceAnalyzer();
+    void stopVoiceAnalyzer();
+    VoiceMetrics getVoiceMetrics() const;
+
     bool initWhisper(const char* modelPath);
     void releaseWhisper();
     void startWhisperCapture();
@@ -63,6 +68,7 @@ private:
     AudioProcessor processor_;
     VolumeLimiter limiter_;
     WhisperBridge whisperBridge_;
+    VoiceAnalyzer voiceAnalyzer_;
 
     std::vector<float> captureBuffer_;
     std::vector<float> latestBuffer_;
