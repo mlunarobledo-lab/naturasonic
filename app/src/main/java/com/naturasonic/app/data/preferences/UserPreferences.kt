@@ -112,6 +112,30 @@ class UserPreferences @Inject constructor(
         prefs[KEY_DSP_WATCHDOG_ENABLED] ?: true
     }
 
+    val ancPhaseEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_ANC_PHASE_ENABLED] ?: false
+    }
+
+    val ancCancellationGain: Flow<Float> = dataStore.data.map { prefs ->
+        prefs[KEY_ANC_CANCELLATION_GAIN] ?: 0.5f
+    }
+
+    val ancLpEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_ANC_LP_ENABLED] ?: true
+    }
+
+    val ancHpEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_ANC_HP_ENABLED] ?: true
+    }
+
+    val ancLpCutoff: Flow<Float> = dataStore.data.map { prefs ->
+        prefs[KEY_ANC_LP_CUTOFF] ?: 200.0f
+    }
+
+    val ancHpCutoff: Flow<Float> = dataStore.data.map { prefs ->
+        prefs[KEY_ANC_HP_CUTOFF] ?: 4000.0f
+    }
+
     val transientLimiterEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[KEY_TRANSIENT_LIMITER_ENABLED] ?: false
     }
@@ -208,6 +232,30 @@ class UserPreferences @Inject constructor(
         dataStore.edit { it[KEY_DSP_WATCHDOG_ENABLED] = enabled }
     }
 
+    suspend fun setAncPhaseEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_ANC_PHASE_ENABLED] = enabled }
+    }
+
+    suspend fun setAncCancellationGain(gain: Float) {
+        dataStore.edit { it[KEY_ANC_CANCELLATION_GAIN] = gain.coerceIn(0f, 1f) }
+    }
+
+    suspend fun setAncLpEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_ANC_LP_ENABLED] = enabled }
+    }
+
+    suspend fun setAncHpEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_ANC_HP_ENABLED] = enabled }
+    }
+
+    suspend fun setAncLpCutoff(cutoffHz: Float) {
+        dataStore.edit { it[KEY_ANC_LP_CUTOFF] = cutoffHz.coerceIn(50f, 500f) }
+    }
+
+    suspend fun setAncHpCutoff(cutoffHz: Float) {
+        dataStore.edit { it[KEY_ANC_HP_CUTOFF] = cutoffHz.coerceIn(2000f, 8000f) }
+    }
+
     suspend fun setTransientLimiterEnabled(enabled: Boolean) {
         dataStore.edit { it[KEY_TRANSIENT_LIMITER_ENABLED] = enabled }
     }
@@ -253,6 +301,12 @@ class UserPreferences @Inject constructor(
         private val KEY_AUTO_BACKUP_ENABLED = booleanPreferencesKey("auto_backup_enabled")
         private val KEY_LAST_BACKUP_TIMESTAMP = longPreferencesKey("last_backup_timestamp")
         private val KEY_DSP_WATCHDOG_ENABLED = booleanPreferencesKey("dsp_watchdog_enabled")
+        private val KEY_ANC_PHASE_ENABLED = booleanPreferencesKey("anc_phase_enabled")
+        private val KEY_ANC_CANCELLATION_GAIN = floatPreferencesKey("anc_cancellation_gain")
+        private val KEY_ANC_LP_ENABLED = booleanPreferencesKey("anc_lp_enabled")
+        private val KEY_ANC_HP_ENABLED = booleanPreferencesKey("anc_hp_enabled")
+        private val KEY_ANC_LP_CUTOFF = floatPreferencesKey("anc_lp_cutoff")
+        private val KEY_ANC_HP_CUTOFF = floatPreferencesKey("anc_hp_cutoff")
         private val KEY_TRANSIENT_LIMITER_ENABLED = booleanPreferencesKey("transient_limiter_enabled")
         private val KEY_TRANSIENT_LIMITER_THRESHOLD = floatPreferencesKey("transient_limiter_threshold")
         private val KEY_SPEECH_BOOST_DB = floatPreferencesKey("speech_boost_db")

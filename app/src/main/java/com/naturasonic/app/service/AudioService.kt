@@ -76,6 +76,7 @@ class AudioService : Service() {
     private var dosimetryObserverJob: Job? = null
     private var attentionObserverJob: Job? = null
     private var transientLimiterObserverJob: Job? = null
+    private var ancPhaseObserverJob: Job? = null
     private var watchdogObserverJob: Job? = null
     private var watchdogRestartJob: Job? = null
 
@@ -112,6 +113,7 @@ class AudioService : Service() {
             startDosimetryObserver()
             startAttentionObserver()
             startTransientLimiterObserver()
+            startAncPhaseObserver()
             startWatchdogObserver()
             audioEngine.startVoiceAnalyzer()
         }
@@ -247,6 +249,45 @@ class AudioService : Service() {
         }
     }
 
+    private fun startAncPhaseObserver() {
+        ancPhaseObserverJob?.cancel()
+        ancPhaseObserverJob = serviceScope.launch {
+            combine(
+                userPreferences.ancPhaseEnabled,
+                userPreferences.ancCancellationGain,
+                userPreferences.ancLpEnabled,
+                userPreferences.ancHpEnabled,
+                userPreferences.ancLpCutoff,
+                userPreferences.ancHpCutoff
+            ) { values ->
+                AncPhaseParams(
+                    enabled = values[0] as Boolean,
+                    gain = values[1] as Float,
+                    lpEnabled = values[2] as Boolean,
+                    hpEnabled = values[3] as Boolean,
+                    lpCutoff = values[4] as Float,
+                    hpCutoff = values[5] as Float
+                )
+            }.collect { params ->
+                audioEngine.setAncPhaseEnabled(params.enabled)
+                audioEngine.setAncCancellationGain(params.gain)
+                audioEngine.setAncLpEnabled(params.lpEnabled)
+                audioEngine.setAncHpEnabled(params.hpEnabled)
+                audioEngine.setAncLpCutoff(params.lpCutoff)
+                audioEngine.setAncHpCutoff(params.hpCutoff)
+            }
+        }
+    }
+
+    private data class AncPhaseParams(
+        val enabled: Boolean,
+        val gain: Float,
+        val lpEnabled: Boolean,
+        val hpEnabled: Boolean,
+        val lpCutoff: Float,
+        val hpCutoff: Float
+    )
+
     private fun startWatchdogObserver() {
         watchdogObserverJob?.cancel()
         watchdogObserverJob = serviceScope.launch {
@@ -280,6 +321,12 @@ class AudioService : Service() {
         audioEngine.setAecMode(userPreferences.aecMode.first())
         audioEngine.setTransientLimiterEnabled(userPreferences.transientLimiterEnabled.first())
         audioEngine.setTransientLimiterThreshold(userPreferences.transientLimiterThreshold.first())
+        audioEngine.setAncPhaseEnabled(userPreferences.ancPhaseEnabled.first())
+        audioEngine.setAncCancellationGain(userPreferences.ancCancellationGain.first())
+        audioEngine.setAncLpEnabled(userPreferences.ancLpEnabled.first())
+        audioEngine.setAncHpEnabled(userPreferences.ancHpEnabled.first())
+        audioEngine.setAncLpCutoff(userPreferences.ancLpCutoff.first())
+        audioEngine.setAncHpCutoff(userPreferences.ancHpCutoff.first())
     }
 
     private fun stopAudio() {
@@ -287,6 +334,8 @@ class AudioService : Service() {
         watchdogRestartJob?.cancel()
         watchdogObserverJob?.cancel()
         dspWatchdogManager.stopMonitoring()
+        ancPhaseObserverJob?.cancel()
+        audioEngine.setAncPhaseEnabled(false)
         transientLimiterObserverJob?.cancel()
         audioEngine.setTransientLimiterEnabled(false)
         attentionObserverJob?.cancel()
@@ -407,6 +456,7 @@ class AudioService : Service() {
         watchdogRestartJob?.cancel()
         watchdogObserverJob?.cancel()
         dspWatchdogManager.stopMonitoring()
+        ancPhaseObserverJob?.cancel()
         transientLimiterObserverJob?.cancel()
         attentionObserverJob?.cancel()
         attentionController.stop()

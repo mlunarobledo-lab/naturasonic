@@ -14,6 +14,7 @@
 #include "aec_filter.h"
 #include "dosimetry_analyzer.h"
 #include "transient_limiter.h"
+#include "anc_phase_inverter.h"
 
 struct LatencyStats {
     float dspMinUs = 0;
@@ -53,6 +54,13 @@ public:
     void setTransientLimiterEnabled(bool enabled);
     void setTransientLimiterThreshold(float thresholdDb);
     bool isTransientLimiterActive() const;
+
+    void setAncPhaseEnabled(bool enabled);
+    void setAncCancellationGain(float gain);
+    void setAncLpEnabled(bool enabled);
+    void setAncHpEnabled(bool enabled);
+    void setAncLpCutoff(float cutoffHz);
+    void setAncHpCutoff(float cutoffHz);
 
     static constexpr int kAecOff = 0;
     static constexpr int kAecSoftware = 1;
@@ -103,6 +111,7 @@ private:
     AecFilter aecFilter_;
     DosimetryAnalyzer dosimetryAnalyzer_;
     TransientLimiter transientLimiter_;
+    AncPhaseInverter ancPhaseInverter_;
     std::atomic<int> aecMode_{kAecOff};
 
     std::vector<float> captureBuffer_;

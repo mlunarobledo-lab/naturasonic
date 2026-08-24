@@ -44,6 +44,7 @@ add_library(naturasonic SHARED
     aec_filter.cpp
     dosimetry_analyzer.cpp
     transient_limiter.cpp
+    anc_phase_inverter.cpp
 )
 
 target_include_directories(naturasonic PRIVATE

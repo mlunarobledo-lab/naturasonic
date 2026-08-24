@@ -177,6 +177,42 @@ class OboeAudioEngine @Inject constructor() {
         }
     }
 
+    fun setAncPhaseEnabled(enabled: Boolean) {
+        if (engineHandle != 0L) {
+            nativeSetAncPhaseEnabled(engineHandle, enabled)
+        }
+    }
+
+    fun setAncCancellationGain(gain: Float) {
+        if (engineHandle != 0L) {
+            nativeSetAncCancellationGain(engineHandle, gain.coerceIn(0f, 1f))
+        }
+    }
+
+    fun setAncLpEnabled(enabled: Boolean) {
+        if (engineHandle != 0L) {
+            nativeSetAncLpEnabled(engineHandle, enabled)
+        }
+    }
+
+    fun setAncHpEnabled(enabled: Boolean) {
+        if (engineHandle != 0L) {
+            nativeSetAncHpEnabled(engineHandle, enabled)
+        }
+    }
+
+    fun setAncLpCutoff(cutoffHz: Float) {
+        if (engineHandle != 0L) {
+            nativeSetAncLpCutoff(engineHandle, cutoffHz.coerceIn(50f, 500f))
+        }
+    }
+
+    fun setAncHpCutoff(cutoffHz: Float) {
+        if (engineHandle != 0L) {
+            nativeSetAncHpCutoff(engineHandle, cutoffHz.coerceIn(2000f, 8000f))
+        }
+    }
+
     fun setAecMode(mode: Int) {
         if (engineHandle != 0L) {
             nativeSetAecMode(engineHandle, mode.coerceIn(0, 2))
@@ -224,6 +260,12 @@ class OboeAudioEngine @Inject constructor() {
     private external fun nativeGetTransientLimiterActive(engineHandle: Long): Boolean
     private external fun nativeGetWatchdogStats(engineHandle: Long): LongArray?
     private external fun nativeResetWatchdog(engineHandle: Long)
+    private external fun nativeSetAncPhaseEnabled(engineHandle: Long, enabled: Boolean)
+    private external fun nativeSetAncCancellationGain(engineHandle: Long, gain: Float)
+    private external fun nativeSetAncLpEnabled(engineHandle: Long, enabled: Boolean)
+    private external fun nativeSetAncHpEnabled(engineHandle: Long, enabled: Boolean)
+    private external fun nativeSetAncLpCutoff(engineHandle: Long, cutoffHz: Float)
+    private external fun nativeSetAncHpCutoff(engineHandle: Long, cutoffHz: Float)
     private external fun nativeSetAecMode(engineHandle: Long, mode: Int)
     private external fun nativeGetAudioSessionId(engineHandle: Long): Int
     private external fun nativeDestroy(engineHandle: Long)

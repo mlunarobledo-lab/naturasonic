@@ -354,6 +354,62 @@ Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetCalibrationOffset(
     }
 }
 
+// --- ANC Phase Inverter JNI bridge ---
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetAncPhaseEnabled(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jboolean enabled) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setAncPhaseEnabled(enabled == JNI_TRUE);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetAncCancellationGain(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jfloat gain) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setAncCancellationGain(gain);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetAncLpEnabled(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jboolean enabled) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setAncLpEnabled(enabled == JNI_TRUE);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetAncHpEnabled(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jboolean enabled) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setAncHpEnabled(enabled == JNI_TRUE);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetAncLpCutoff(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jfloat cutoffHz) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setAncLpCutoff(cutoffHz);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetAncHpCutoff(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jfloat cutoffHz) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setAncHpCutoff(cutoffHz);
+    }
+}
+
 // --- Whisper JNI bridge (audio stays in C++) ---
 
 JNIEXPORT jboolean JNICALL

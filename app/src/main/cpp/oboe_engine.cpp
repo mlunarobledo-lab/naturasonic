@@ -120,6 +120,30 @@ bool NaturaSonicEngine::isTransientLimiterActive() const {
     return transientLimiter_.isActive();
 }
 
+void NaturaSonicEngine::setAncPhaseEnabled(bool enabled) {
+    ancPhaseInverter_.setEnabled(enabled);
+}
+
+void NaturaSonicEngine::setAncCancellationGain(float gain) {
+    ancPhaseInverter_.setCancellationGain(gain);
+}
+
+void NaturaSonicEngine::setAncLpEnabled(bool enabled) {
+    ancPhaseInverter_.setLpEnabled(enabled);
+}
+
+void NaturaSonicEngine::setAncHpEnabled(bool enabled) {
+    ancPhaseInverter_.setHpEnabled(enabled);
+}
+
+void NaturaSonicEngine::setAncLpCutoff(float cutoffHz) {
+    ancPhaseInverter_.setLpCutoff(cutoffHz);
+}
+
+void NaturaSonicEngine::setAncHpCutoff(float cutoffHz) {
+    ancPhaseInverter_.setHpCutoff(cutoffHz);
+}
+
 void NaturaSonicEngine::setAecMode(int mode) {
     int clamped = std::clamp(mode, 0, 2);
     aecMode_.store(clamped, std::memory_order_relaxed);
@@ -184,6 +208,7 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
                 // Dosimetry reads RAW input (before DSP) for accurate ambient SPL
                 dosimetryAnalyzer_.feedAudio(captureBuffer_.data(), framesToProcess);
 
+                ancPhaseInverter_.process(captureBuffer_.data(), framesToProcess);
                 processor_.process(captureBuffer_.data(), framesToProcess);
                 transientLimiter_.process(captureBuffer_.data(), framesToProcess);
                 limiter_.process(captureBuffer_.data(), framesToProcess);
