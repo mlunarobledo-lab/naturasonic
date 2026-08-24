@@ -43,6 +43,7 @@ add_library(naturasonic SHARED
     voice_analyzer.cpp
     aec_filter.cpp
     dosimetry_analyzer.cpp
+    transient_limiter.cpp
 )
 
 target_include_directories(naturasonic PRIVATE

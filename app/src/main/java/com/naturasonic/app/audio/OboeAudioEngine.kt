@@ -149,6 +149,23 @@ class OboeAudioEngine @Inject constructor() {
         }
     }
 
+    fun setTransientLimiterEnabled(enabled: Boolean) {
+        if (engineHandle != 0L) {
+            nativeSetTransientLimiterEnabled(engineHandle, enabled)
+        }
+    }
+
+    fun setTransientLimiterThreshold(thresholdDb: Float) {
+        if (engineHandle != 0L) {
+            nativeSetTransientLimiterThreshold(engineHandle, thresholdDb.coerceIn(-20f, 0f))
+        }
+    }
+
+    fun isTransientLimiterActive(): Boolean {
+        if (engineHandle == 0L) return false
+        return nativeGetTransientLimiterActive(engineHandle)
+    }
+
     fun setAecMode(mode: Int) {
         if (engineHandle != 0L) {
             nativeSetAecMode(engineHandle, mode.coerceIn(0, 2))
@@ -191,6 +208,9 @@ class OboeAudioEngine @Inject constructor() {
     private external fun nativeStopDosimetry(engineHandle: Long)
     private external fun nativeGetDosimetryData(engineHandle: Long): FloatArray?
     private external fun nativeSetCalibrationOffset(engineHandle: Long, offsetDb: Float)
+    private external fun nativeSetTransientLimiterEnabled(engineHandle: Long, enabled: Boolean)
+    private external fun nativeSetTransientLimiterThreshold(engineHandle: Long, thresholdDb: Float)
+    private external fun nativeGetTransientLimiterActive(engineHandle: Long): Boolean
     private external fun nativeSetAecMode(engineHandle: Long, mode: Int)
     private external fun nativeGetAudioSessionId(engineHandle: Long): Int
     private external fun nativeDestroy(engineHandle: Long)

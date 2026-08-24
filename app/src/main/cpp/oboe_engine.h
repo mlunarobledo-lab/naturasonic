@@ -12,6 +12,7 @@
 #include "voice_analyzer.h"
 #include "aec_filter.h"
 #include "dosimetry_analyzer.h"
+#include "transient_limiter.h"
 
 struct LatencyStats {
     float dspMinUs = 0;
@@ -40,6 +41,9 @@ public:
     void setHeadTrackingAngles(float azimuthDeg, float pitchDeg, float sensitivity);
     void setAttentionAgcEnabled(bool enabled);
     void setAttentionGainOffsets(const float* offsets, int count);
+    void setTransientLimiterEnabled(bool enabled);
+    void setTransientLimiterThreshold(float thresholdDb);
+    bool isTransientLimiterActive() const;
 
     static constexpr int kAecOff = 0;
     static constexpr int kAecSoftware = 1;
@@ -87,6 +91,7 @@ private:
     VoiceAnalyzer voiceAnalyzer_;
     AecFilter aecFilter_;
     DosimetryAnalyzer dosimetryAnalyzer_;
+    TransientLimiter transientLimiter_;
     std::atomic<int> aecMode_{kAecOff};
 
     std::vector<float> captureBuffer_;

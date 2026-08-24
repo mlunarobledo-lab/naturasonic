@@ -106,6 +106,19 @@ void NaturaSonicEngine::setAttentionGainOffsets(const float* offsets, int count)
     processor_.setAttentionGainOffsets(offsets, count);
 }
 
+void NaturaSonicEngine::setTransientLimiterEnabled(bool enabled) {
+    transientLimiter_.setEnabled(enabled);
+    LOGI("Transient limiter: %s", enabled ? "enabled" : "disabled");
+}
+
+void NaturaSonicEngine::setTransientLimiterThreshold(float thresholdDb) {
+    transientLimiter_.setThresholdDb(thresholdDb);
+}
+
+bool NaturaSonicEngine::isTransientLimiterActive() const {
+    return transientLimiter_.isActive();
+}
+
 void NaturaSonicEngine::setAecMode(int mode) {
     int clamped = std::clamp(mode, 0, 2);
     aecMode_.store(clamped, std::memory_order_relaxed);
@@ -166,6 +179,7 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
                 dosimetryAnalyzer_.feedAudio(captureBuffer_.data(), framesToProcess);
 
                 processor_.process(captureBuffer_.data(), framesToProcess);
+                transientLimiter_.process(captureBuffer_.data(), framesToProcess);
                 limiter_.process(captureBuffer_.data(), framesToProcess);
 
                 auto dspEnd = std::chrono::steady_clock::now();

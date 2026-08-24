@@ -99,6 +99,14 @@ class UserPreferences @Inject constructor(
         prefs[KEY_SECURITY_LOCK_TIMEOUT] ?: 1
     }
 
+    val transientLimiterEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_TRANSIENT_LIMITER_ENABLED] ?: false
+    }
+
+    val transientLimiterThreshold: Flow<Float> = dataStore.data.map { prefs ->
+        prefs[KEY_TRANSIENT_LIMITER_THRESHOLD] ?: -6.0f
+    }
+
     val speechBoostDb: Flow<Float> = dataStore.data.map { prefs ->
         prefs[KEY_SPEECH_BOOST_DB] ?: 3.0f
     }
@@ -175,6 +183,14 @@ class UserPreferences @Inject constructor(
         dataStore.edit { it[KEY_ATTENTION_AGC_ENABLED] = enabled }
     }
 
+    suspend fun setTransientLimiterEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_TRANSIENT_LIMITER_ENABLED] = enabled }
+    }
+
+    suspend fun setTransientLimiterThreshold(thresholdDb: Float) {
+        dataStore.edit { it[KEY_TRANSIENT_LIMITER_THRESHOLD] = thresholdDb.coerceIn(-20f, 0f) }
+    }
+
     suspend fun setSpeechBoostDb(db: Float) {
         dataStore.edit { it[KEY_SPEECH_BOOST_DB] = db.coerceIn(1f, 6f) }
     }
@@ -209,6 +225,8 @@ class UserPreferences @Inject constructor(
         private val KEY_DOSIMETRY_ENABLED = booleanPreferencesKey("dosimetry_enabled")
         private val KEY_CALIBRATION_OFFSET = floatPreferencesKey("calibration_offset")
         private val KEY_ATTENTION_AGC_ENABLED = booleanPreferencesKey("attention_agc_enabled")
+        private val KEY_TRANSIENT_LIMITER_ENABLED = booleanPreferencesKey("transient_limiter_enabled")
+        private val KEY_TRANSIENT_LIMITER_THRESHOLD = floatPreferencesKey("transient_limiter_threshold")
         private val KEY_SPEECH_BOOST_DB = floatPreferencesKey("speech_boost_db")
         private val KEY_ALERT_ATTENUATION_DB = floatPreferencesKey("alert_attenuation_db")
         private val KEY_SECURITY_LOCK_ENABLED = booleanPreferencesKey("security_lock_enabled")

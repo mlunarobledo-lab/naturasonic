@@ -73,6 +73,7 @@ class AudioService : Service() {
     private var aecObserverJob: Job? = null
     private var dosimetryObserverJob: Job? = null
     private var attentionObserverJob: Job? = null
+    private var transientLimiterObserverJob: Job? = null
 
     inner class AudioBinder : Binder() {
         fun getService(): AudioService = this@AudioService
@@ -106,6 +107,7 @@ class AudioService : Service() {
             startAecObserver()
             startDosimetryObserver()
             startAttentionObserver()
+            startTransientLimiterObserver()
             audioEngine.startVoiceAnalyzer()
         }
     }
@@ -211,6 +213,20 @@ class AudioService : Service() {
         }
     }
 
+    private fun startTransientLimiterObserver() {
+        transientLimiterObserverJob?.cancel()
+        transientLimiterObserverJob = serviceScope.launch {
+            combine(
+                userPreferences.transientLimiterEnabled,
+                userPreferences.transientLimiterThreshold
+            ) { enabled, threshold -> Pair(enabled, threshold) }
+                .collect { (enabled, threshold) ->
+                    audioEngine.setTransientLimiterEnabled(enabled)
+                    audioEngine.setTransientLimiterThreshold(threshold)
+                }
+        }
+    }
+
     private fun startAecObserver() {
         aecObserverJob?.cancel()
         aecObserverJob = serviceScope.launch {
@@ -228,6 +244,8 @@ class AudioService : Service() {
 
     private fun stopAudio() {
         audioEngine.stopVoiceAnalyzer()
+        transientLimiterObserverJob?.cancel()
+        audioEngine.setTransientLimiterEnabled(false)
         attentionObserverJob?.cancel()
         attentionController.stop()
         dosimetryObserverJob?.cancel()
@@ -343,6 +361,7 @@ class AudioService : Service() {
 
     override fun onDestroy() {
         audioEngine.stopVoiceAnalyzer()
+        transientLimiterObserverJob?.cancel()
         attentionObserverJob?.cancel()
         attentionController.stop()
         dosimetryObserverJob?.cancel()

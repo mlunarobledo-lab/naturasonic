@@ -252,6 +252,36 @@ Java_com_naturasonic_app_audio_OboeAudioEngine_nativeDestroy(
     }
 }
 
+// --- Transient Limiter JNI bridge ---
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetTransientLimiterEnabled(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jboolean enabled) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setTransientLimiterEnabled(enabled == JNI_TRUE);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetTransientLimiterThreshold(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jfloat thresholdDb) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setTransientLimiterThreshold(thresholdDb);
+    }
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeGetTransientLimiterActive(
+        JNIEnv* env, jobject thiz, jlong engineHandle) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        return eng->isTransientLimiterActive() ? JNI_TRUE : JNI_FALSE;
+    }
+    return JNI_FALSE;
+}
+
 // --- Dosimetry JNI bridge ---
 
 JNIEXPORT void JNICALL
