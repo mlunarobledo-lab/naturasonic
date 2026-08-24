@@ -89,6 +89,7 @@ fun SettingsScreen(
     onNavigateToCloudBackup: () -> Unit = {},
     onNavigateToDspWatchdog: () -> Unit = {},
     onNavigateToWdrc: () -> Unit = {},
+    onNavigateToTinnitus: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -286,6 +287,14 @@ fun SettingsScreen(
                 Icon(Icons.Default.GraphicEq, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Compresión dinámica")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            TextButton(onClick = onNavigateToTinnitus) {
+                Icon(Icons.Default.HearingDisabled, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Terapia de tinnitus")
             }
 
             Spacer(Modifier.height(8.dp))

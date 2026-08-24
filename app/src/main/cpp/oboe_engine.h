@@ -16,6 +16,7 @@
 #include "transient_limiter.h"
 #include "anc_phase_inverter.h"
 #include "wdrc_compressor.h"
+#include "tinnitus_generator.h"
 
 struct LatencyStats {
     float dspMinUs = 0;
@@ -71,6 +72,11 @@ public:
     void applyWdrcAudiogramProfile(const float* thresholdsDbHl, int count);
     WdrcCompressor::BandGains getWdrcActiveGains() const;
 
+    void setTinnitusEnabled(bool enabled);
+    void setTinnitusSoundType(int type);
+    void setTinnitusVolume(float volume);
+    void setTinnitusFrequencyHz(float freqHz);
+
     static constexpr int kAecOff = 0;
     static constexpr int kAecSoftware = 1;
     static constexpr int kAecSystem = 2;
@@ -122,6 +128,7 @@ private:
     TransientLimiter transientLimiter_;
     AncPhaseInverter ancPhaseInverter_;
     WdrcCompressor wdrcCompressor_;
+    TinnitusGenerator tinnitusGenerator_;
     std::atomic<int> aecMode_{kAecOff};
 
     std::vector<float> captureBuffer_;

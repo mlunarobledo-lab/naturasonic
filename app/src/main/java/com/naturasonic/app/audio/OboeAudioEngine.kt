@@ -250,6 +250,30 @@ class OboeAudioEngine @Inject constructor() {
         return nativeGetWdrcActiveGains(engineHandle)
     }
 
+    fun setTinnitusEnabled(enabled: Boolean) {
+        if (engineHandle != 0L) {
+            nativeSetTinnitusEnabled(engineHandle, enabled)
+        }
+    }
+
+    fun setTinnitusSoundType(type: Int) {
+        if (engineHandle != 0L) {
+            nativeSetTinnitusSoundType(engineHandle, type.coerceIn(0, 4))
+        }
+    }
+
+    fun setTinnitusVolume(volume: Float) {
+        if (engineHandle != 0L) {
+            nativeSetTinnitusVolume(engineHandle, volume.coerceIn(0f, 1f))
+        }
+    }
+
+    fun setTinnitusFrequencyHz(freqHz: Float) {
+        if (engineHandle != 0L) {
+            nativeSetTinnitusFrequencyHz(engineHandle, freqHz.coerceIn(500f, 16000f))
+        }
+    }
+
     fun setAecMode(mode: Int) {
         if (engineHandle != 0L) {
             nativeSetAecMode(engineHandle, mode.coerceIn(0, 2))
@@ -309,6 +333,10 @@ class OboeAudioEngine @Inject constructor() {
     private external fun nativeSetWdrcBandParams(engineHandle: Long, bandIndex: Int, thresholdDb: Float, ratio: Float, attackMs: Float, releaseMs: Float)
     private external fun nativeApplyWdrcAudiogramProfile(engineHandle: Long, thresholds: FloatArray)
     private external fun nativeGetWdrcActiveGains(engineHandle: Long): FloatArray?
+    private external fun nativeSetTinnitusEnabled(engineHandle: Long, enabled: Boolean)
+    private external fun nativeSetTinnitusSoundType(engineHandle: Long, type: Int)
+    private external fun nativeSetTinnitusVolume(engineHandle: Long, volume: Float)
+    private external fun nativeSetTinnitusFrequencyHz(engineHandle: Long, freqHz: Float)
     private external fun nativeSetAecMode(engineHandle: Long, mode: Int)
     private external fun nativeGetAudioSessionId(engineHandle: Long): Int
     private external fun nativeDestroy(engineHandle: Long)

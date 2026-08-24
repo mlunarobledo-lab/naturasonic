@@ -475,6 +475,44 @@ Java_com_naturasonic_app_audio_OboeAudioEngine_nativeGetWdrcActiveGains(
     return result;
 }
 
+// --- Tinnitus Generator JNI bridge ---
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetTinnitusEnabled(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jboolean enabled) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setTinnitusEnabled(enabled == JNI_TRUE);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetTinnitusSoundType(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jint type) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setTinnitusSoundType(type);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetTinnitusVolume(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jfloat volume) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setTinnitusVolume(volume);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetTinnitusFrequencyHz(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jfloat freqHz) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setTinnitusFrequencyHz(freqHz);
+    }
+}
+
 // --- Whisper JNI bridge (audio stays in C++) ---
 
 JNIEXPORT jboolean JNICALL

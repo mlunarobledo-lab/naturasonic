@@ -152,6 +152,26 @@ class UserPreferences @Inject constructor(
         prefs[KEY_WDRC_CUSTOM_PARAMS] ?: ""
     }
 
+    val tinnitusEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_TINNITUS_ENABLED] ?: false
+    }
+
+    val tinnitusSoundType: Flow<Int> = dataStore.data.map { prefs ->
+        prefs[KEY_TINNITUS_SOUND_TYPE] ?: 0
+    }
+
+    val tinnitusVolume: Flow<Float> = dataStore.data.map { prefs ->
+        prefs[KEY_TINNITUS_VOLUME] ?: 0.3f
+    }
+
+    val tinnitusFrequencyHz: Flow<Float> = dataStore.data.map { prefs ->
+        prefs[KEY_TINNITUS_FREQUENCY_HZ] ?: 4000.0f
+    }
+
+    val tinnitusTimerMinutes: Flow<Int> = dataStore.data.map { prefs ->
+        prefs[KEY_TINNITUS_TIMER_MINUTES] ?: 0
+    }
+
     val transientLimiterEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[KEY_TRANSIENT_LIMITER_ENABLED] ?: false
     }
@@ -288,6 +308,26 @@ class UserPreferences @Inject constructor(
         dataStore.edit { it[KEY_WDRC_CUSTOM_PARAMS] = params }
     }
 
+    suspend fun setTinnitusEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_TINNITUS_ENABLED] = enabled }
+    }
+
+    suspend fun setTinnitusSoundType(type: Int) {
+        dataStore.edit { it[KEY_TINNITUS_SOUND_TYPE] = type.coerceIn(0, 4) }
+    }
+
+    suspend fun setTinnitusVolume(volume: Float) {
+        dataStore.edit { it[KEY_TINNITUS_VOLUME] = volume.coerceIn(0f, 1f) }
+    }
+
+    suspend fun setTinnitusFrequencyHz(freqHz: Float) {
+        dataStore.edit { it[KEY_TINNITUS_FREQUENCY_HZ] = freqHz.coerceIn(500f, 16000f) }
+    }
+
+    suspend fun setTinnitusTimerMinutes(minutes: Int) {
+        dataStore.edit { it[KEY_TINNITUS_TIMER_MINUTES] = minutes }
+    }
+
     suspend fun setTransientLimiterEnabled(enabled: Boolean) {
         dataStore.edit { it[KEY_TRANSIENT_LIMITER_ENABLED] = enabled }
     }
@@ -343,6 +383,11 @@ class UserPreferences @Inject constructor(
         private val KEY_WDRC_MAKEUP_GAIN_DB = floatPreferencesKey("wdrc_makeup_gain_db")
         private val KEY_WDRC_PRESET = intPreferencesKey("wdrc_preset")
         private val KEY_WDRC_CUSTOM_PARAMS = stringPreferencesKey("wdrc_custom_params")
+        private val KEY_TINNITUS_ENABLED = booleanPreferencesKey("tinnitus_enabled")
+        private val KEY_TINNITUS_SOUND_TYPE = intPreferencesKey("tinnitus_sound_type")
+        private val KEY_TINNITUS_VOLUME = floatPreferencesKey("tinnitus_volume")
+        private val KEY_TINNITUS_FREQUENCY_HZ = floatPreferencesKey("tinnitus_frequency_hz")
+        private val KEY_TINNITUS_TIMER_MINUTES = intPreferencesKey("tinnitus_timer_minutes")
         private val KEY_TRANSIENT_LIMITER_ENABLED = booleanPreferencesKey("transient_limiter_enabled")
         private val KEY_TRANSIENT_LIMITER_THRESHOLD = floatPreferencesKey("transient_limiter_threshold")
         private val KEY_SPEECH_BOOST_DB = floatPreferencesKey("speech_boost_db")

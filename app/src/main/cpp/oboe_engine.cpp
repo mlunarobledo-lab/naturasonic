@@ -172,6 +172,23 @@ WdrcCompressor::BandGains NaturaSonicEngine::getWdrcActiveGains() const {
     return wdrcCompressor_.getActiveGains();
 }
 
+void NaturaSonicEngine::setTinnitusEnabled(bool enabled) {
+    tinnitusGenerator_.setEnabled(enabled);
+    LOGI("Tinnitus generator: %s", enabled ? "enabled" : "disabled");
+}
+
+void NaturaSonicEngine::setTinnitusSoundType(int type) {
+    tinnitusGenerator_.setSoundType(type);
+}
+
+void NaturaSonicEngine::setTinnitusVolume(float volume) {
+    tinnitusGenerator_.setVolume(volume);
+}
+
+void NaturaSonicEngine::setTinnitusFrequencyHz(float freqHz) {
+    tinnitusGenerator_.setFrequencyHz(freqHz);
+}
+
 void NaturaSonicEngine::setAecMode(int mode) {
     int clamped = std::clamp(mode, 0, 2);
     aecMode_.store(clamped, std::memory_order_relaxed);
@@ -218,6 +235,7 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
 
     if (stream == outputStream_.get()) {
         auto* output = static_cast<float*>(audioData);
+        int framesToOutput = numFrames;
 
         if (inputStream_) {
             auto result = inputStream_->read(
@@ -225,6 +243,7 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
 
             if (result.value() > 0) {
                 int framesToProcess = result.value();
+                framesToOutput = framesToProcess;
 
                 ATrace_beginSection("NaturaSonic::DSP");
                 auto dspStart = std::chrono::steady_clock::now();
@@ -233,7 +252,6 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
                     aecFilter_.process(captureBuffer_.data(), framesToProcess);
                 }
 
-                // Dosimetry reads RAW input (before DSP) for accurate ambient SPL
                 dosimetryAnalyzer_.feedAudio(captureBuffer_.data(), framesToProcess);
 
                 ancPhaseInverter_.process(captureBuffer_.data(), framesToProcess);
@@ -288,6 +306,10 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
             }
         } else {
             std::memset(output, 0, numFrames * kChannelCount * sizeof(float));
+        }
+
+        if (!outputMuted_.load(std::memory_order_relaxed)) {
+            tinnitusGenerator_.generate(output, framesToOutput);
         }
     }
 

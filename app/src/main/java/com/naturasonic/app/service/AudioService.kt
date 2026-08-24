@@ -78,6 +78,8 @@ class AudioService : Service() {
     private var transientLimiterObserverJob: Job? = null
     private var ancPhaseObserverJob: Job? = null
     private var wdrcObserverJob: Job? = null
+    private var tinnitusObserverJob: Job? = null
+    private var tinnitusTimerJob: Job? = null
     private var watchdogObserverJob: Job? = null
     private var watchdogRestartJob: Job? = null
 
@@ -116,6 +118,7 @@ class AudioService : Service() {
             startTransientLimiterObserver()
             startAncPhaseObserver()
             startWdrcObserver()
+            startTinnitusObserver()
             startWatchdogObserver()
             audioEngine.startVoiceAnalyzer()
         }
@@ -307,6 +310,42 @@ class AudioService : Service() {
         }
     }
 
+    private fun startTinnitusObserver() {
+        tinnitusObserverJob?.cancel()
+        tinnitusObserverJob = serviceScope.launch {
+            combine(
+                userPreferences.tinnitusEnabled,
+                userPreferences.tinnitusSoundType,
+                userPreferences.tinnitusVolume,
+                userPreferences.tinnitusFrequencyHz,
+                userPreferences.tinnitusTimerMinutes
+            ) { enabled, soundType, volume, freqHz, timerMinutes ->
+                TinnitusParams(enabled, soundType, volume, freqHz, timerMinutes)
+            }.collect { params ->
+                audioEngine.setTinnitusEnabled(params.enabled)
+                audioEngine.setTinnitusSoundType(params.soundType)
+                audioEngine.setTinnitusVolume(params.volume)
+                audioEngine.setTinnitusFrequencyHz(params.frequencyHz)
+
+                tinnitusTimerJob?.cancel()
+                if (params.enabled && params.timerMinutes > 0) {
+                    tinnitusTimerJob = serviceScope.launch {
+                        delay(params.timerMinutes * 60_000L)
+                        userPreferences.setTinnitusEnabled(false)
+                    }
+                }
+            }
+        }
+    }
+
+    private data class TinnitusParams(
+        val enabled: Boolean,
+        val soundType: Int,
+        val volume: Float,
+        val frequencyHz: Float,
+        val timerMinutes: Int
+    )
+
     private fun startWatchdogObserver() {
         watchdogObserverJob?.cancel()
         watchdogObserverJob = serviceScope.launch {
@@ -349,6 +388,10 @@ class AudioService : Service() {
         audioEngine.setWdrcEnabled(userPreferences.wdrcEnabled.first())
         audioEngine.setWdrcMakeupGainDb(userPreferences.wdrcMakeupGainDb.first())
         audioEngine.setWdrcPreset(userPreferences.wdrcPreset.first())
+        audioEngine.setTinnitusEnabled(userPreferences.tinnitusEnabled.first())
+        audioEngine.setTinnitusSoundType(userPreferences.tinnitusSoundType.first())
+        audioEngine.setTinnitusVolume(userPreferences.tinnitusVolume.first())
+        audioEngine.setTinnitusFrequencyHz(userPreferences.tinnitusFrequencyHz.first())
     }
 
     private fun stopAudio() {
@@ -356,6 +399,9 @@ class AudioService : Service() {
         watchdogRestartJob?.cancel()
         watchdogObserverJob?.cancel()
         dspWatchdogManager.stopMonitoring()
+        tinnitusTimerJob?.cancel()
+        tinnitusObserverJob?.cancel()
+        audioEngine.setTinnitusEnabled(false)
         wdrcObserverJob?.cancel()
         audioEngine.setWdrcEnabled(false)
         ancPhaseObserverJob?.cancel()
@@ -480,6 +526,8 @@ class AudioService : Service() {
         watchdogRestartJob?.cancel()
         watchdogObserverJob?.cancel()
         dspWatchdogManager.stopMonitoring()
+        tinnitusTimerJob?.cancel()
+        tinnitusObserverJob?.cancel()
         wdrcObserverJob?.cancel()
         ancPhaseObserverJob?.cancel()
         transientLimiterObserverJob?.cancel()
