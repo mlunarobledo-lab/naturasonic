@@ -6,6 +6,7 @@
 #include <mutex>
 #include <atomic>
 #include <chrono>
+#include <thread>
 #include "audio_processor.h"
 #include "volume_limiter.h"
 #include "whisper_bridge.h"
@@ -19,6 +20,14 @@ struct LatencyStats {
     float dspMaxUs = 0;
     float dspAvgUs = 0;
     int64_t frameCount = 0;
+};
+
+struct WatchdogStats {
+    int64_t lastCallbackNs = 0;
+    int32_t xRunCount = 0;
+    int32_t restartCount = 0;
+    int32_t consecutiveErrors = 0;
+    bool isRunning = false;
 };
 
 class NaturaSonicEngine : public oboe::AudioStreamDataCallback,
@@ -55,6 +64,8 @@ public:
     std::vector<float> getLatestAudioBuffer();
     std::vector<float> getYamnetAudioBuffer();
     LatencyStats getLatencyStats() const;
+    WatchdogStats getWatchdogStats() const;
+    void resetWatchdog();
 
     void startVoiceAnalyzer();
     void stopVoiceAnalyzer();
@@ -115,4 +126,13 @@ private:
     static constexpr int kChannelCount = 1;
     static constexpr int kFramesPerBuffer = 256;
     static constexpr size_t kYamnetBufferSize = 48000;
+
+    std::atomic<int64_t> lastCallbackNs_{0};
+    std::atomic<int32_t> accumulatedXRuns_{0};
+    std::atomic<int32_t> restartCount_{0};
+    std::atomic<int32_t> consecutiveErrors_{0};
+
+    static constexpr int kMaxRetries = 5;
+    static constexpr int kBackoffBaseMs = 100;
+    static constexpr int kBackoffMaxMs = 5000;
 };

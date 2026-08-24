@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Monitor
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -86,6 +87,7 @@ fun SettingsScreen(
     onNavigateToSecurity: () -> Unit = {},
     onNavigateToTransientLimiter: () -> Unit = {},
     onNavigateToCloudBackup: () -> Unit = {},
+    onNavigateToDspWatchdog: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -299,6 +301,14 @@ fun SettingsScreen(
                 Icon(Icons.Default.CloudUpload, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Copia de seguridad")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            TextButton(onClick = onNavigateToDspWatchdog) {
+                Icon(Icons.Default.Monitor, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Motor de audio")
             }
 
             Spacer(Modifier.height(8.dp))

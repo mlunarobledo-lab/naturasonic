@@ -108,6 +108,10 @@ class UserPreferences @Inject constructor(
         prefs[KEY_LAST_BACKUP_TIMESTAMP] ?: 0L
     }
 
+    val dspWatchdogEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_DSP_WATCHDOG_ENABLED] ?: true
+    }
+
     val transientLimiterEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[KEY_TRANSIENT_LIMITER_ENABLED] ?: false
     }
@@ -200,6 +204,10 @@ class UserPreferences @Inject constructor(
         dataStore.edit { it[KEY_LAST_BACKUP_TIMESTAMP] = timestamp }
     }
 
+    suspend fun setDspWatchdogEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_DSP_WATCHDOG_ENABLED] = enabled }
+    }
+
     suspend fun setTransientLimiterEnabled(enabled: Boolean) {
         dataStore.edit { it[KEY_TRANSIENT_LIMITER_ENABLED] = enabled }
     }
@@ -244,6 +252,7 @@ class UserPreferences @Inject constructor(
         private val KEY_ATTENTION_AGC_ENABLED = booleanPreferencesKey("attention_agc_enabled")
         private val KEY_AUTO_BACKUP_ENABLED = booleanPreferencesKey("auto_backup_enabled")
         private val KEY_LAST_BACKUP_TIMESTAMP = longPreferencesKey("last_backup_timestamp")
+        private val KEY_DSP_WATCHDOG_ENABLED = booleanPreferencesKey("dsp_watchdog_enabled")
         private val KEY_TRANSIENT_LIMITER_ENABLED = booleanPreferencesKey("transient_limiter_enabled")
         private val KEY_TRANSIENT_LIMITER_THRESHOLD = floatPreferencesKey("transient_limiter_threshold")
         private val KEY_SPEECH_BOOST_DB = floatPreferencesKey("speech_boost_db")

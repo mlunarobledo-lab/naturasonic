@@ -282,6 +282,36 @@ Java_com_naturasonic_app_audio_OboeAudioEngine_nativeGetTransientLimiterActive(
     return JNI_FALSE;
 }
 
+// --- Watchdog JNI bridge ---
+
+JNIEXPORT jlongArray JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeGetWatchdogStats(
+        JNIEnv* env, jobject thiz, jlong engineHandle) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (!eng) return nullptr;
+
+    auto stats = eng->getWatchdogStats();
+    jlongArray result = env->NewLongArray(5);
+    jlong data[5] = {
+        stats.lastCallbackNs,
+        static_cast<jlong>(stats.xRunCount),
+        static_cast<jlong>(stats.restartCount),
+        static_cast<jlong>(stats.consecutiveErrors),
+        stats.isRunning ? 1L : 0L
+    };
+    env->SetLongArrayRegion(result, 0, 5, data);
+    return result;
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeResetWatchdog(
+        JNIEnv* env, jobject thiz, jlong engineHandle) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->resetWatchdog();
+    }
+}
+
 // --- Dosimetry JNI bridge ---
 
 JNIEXPORT void JNICALL

@@ -41,6 +41,7 @@ bool NaturaSonicEngine::start() {
     }
 
     running_.store(true);
+    consecutiveErrors_.store(0, std::memory_order_relaxed);
     LOGI("Audio engine started: %dHz, %d channels, %d frames/buffer",
          kSampleRate, kChannelCount, kFramesPerBuffer);
     return true;
@@ -158,6 +159,11 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
         oboe::AudioStream* stream, void* audioData, int32_t numFrames) {
     if (!running_.load()) return oboe::DataCallbackResult::Stop;
 
+    lastCallbackNs_.store(
+        std::chrono::steady_clock::now().time_since_epoch().count(),
+        std::memory_order_relaxed);
+    consecutiveErrors_.store(0, std::memory_order_relaxed);
+
     if (stream == outputStream_.get()) {
         auto* output = static_cast<float*>(audioData);
 
@@ -237,10 +243,31 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
 void NaturaSonicEngine::onErrorAfterClose(
         oboe::AudioStream* stream, oboe::Result result) {
     LOGE("Stream error: %s", oboe::convertToText(result));
-    if (running_.load()) {
-        stop();
-        start();
+
+    if (!running_.load()) return;
+
+    if (outputStream_) {
+        auto xr = outputStream_->getXRunCount();
+        if (xr) accumulatedXRuns_.fetch_add(xr.value(), std::memory_order_relaxed);
     }
+
+    int errors = consecutiveErrors_.fetch_add(1, std::memory_order_relaxed) + 1;
+
+    if (errors > kMaxRetries) {
+        LOGE("Max retries (%d) exceeded, giving up", kMaxRetries);
+        running_.store(false);
+        return;
+    }
+
+    restartCount_.fetch_add(1, std::memory_order_relaxed);
+
+    int backoffMs = std::min(kBackoffBaseMs * (1 << (errors - 1)), kBackoffMaxMs);
+    LOGI("Restart attempt %d/%d after %dms backoff", errors, kMaxRetries, backoffMs);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(backoffMs));
+
+    stop();
+    start();
 }
 
 bool NaturaSonicEngine::initWhisper(const char* modelPath) {
@@ -291,6 +318,29 @@ LatencyStats NaturaSonicEngine::getLatencyStats() const {
     stats.dspMaxUs = maxVal;
     stats.dspAvgUs = sum / static_cast<float>(count);
     return stats;
+}
+
+WatchdogStats NaturaSonicEngine::getWatchdogStats() const {
+    WatchdogStats stats;
+    stats.lastCallbackNs = lastCallbackNs_.load(std::memory_order_relaxed);
+
+    int32_t currentXRuns = 0;
+    if (outputStream_) {
+        auto xr = outputStream_->getXRunCount();
+        if (xr) currentXRuns = xr.value();
+    }
+    stats.xRunCount = accumulatedXRuns_.load(std::memory_order_relaxed) + currentXRuns;
+    stats.restartCount = restartCount_.load(std::memory_order_relaxed);
+    stats.consecutiveErrors = consecutiveErrors_.load(std::memory_order_relaxed);
+    stats.isRunning = running_.load(std::memory_order_relaxed);
+    return stats;
+}
+
+void NaturaSonicEngine::resetWatchdog() {
+    accumulatedXRuns_.store(0, std::memory_order_relaxed);
+    restartCount_.store(0, std::memory_order_relaxed);
+    consecutiveErrors_.store(0, std::memory_order_relaxed);
+    LOGI("Watchdog stats reset");
 }
 
 void NaturaSonicEngine::startVoiceAnalyzer() {

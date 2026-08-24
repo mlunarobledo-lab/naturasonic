@@ -18,6 +18,7 @@ import com.naturasonic.app.audio.AttentionController
 import com.naturasonic.app.audio.DosimetryManager
 import com.naturasonic.app.audio.HeadTrackingManager
 import com.naturasonic.app.audio.HeadTrackingState
+import com.naturasonic.app.audio.DspWatchdogManager
 import com.naturasonic.app.audio.OboeAudioEngine
 import com.naturasonic.app.audio.VolumeProtection
 import com.naturasonic.app.battery.BatteryMonitor
@@ -62,6 +63,7 @@ class AudioService : Service() {
     @Inject lateinit var headTrackingManager: HeadTrackingManager
     @Inject lateinit var dosimetryManager: DosimetryManager
     @Inject lateinit var attentionController: AttentionController
+    @Inject lateinit var dspWatchdogManager: DspWatchdogManager
 
     private val binder = AudioBinder()
     private val serviceScope = CoroutineScope(Dispatchers.Default + Job())
@@ -74,6 +76,8 @@ class AudioService : Service() {
     private var dosimetryObserverJob: Job? = null
     private var attentionObserverJob: Job? = null
     private var transientLimiterObserverJob: Job? = null
+    private var watchdogObserverJob: Job? = null
+    private var watchdogRestartJob: Job? = null
 
     inner class AudioBinder : Binder() {
         fun getService(): AudioService = this@AudioService
@@ -108,6 +112,7 @@ class AudioService : Service() {
             startDosimetryObserver()
             startAttentionObserver()
             startTransientLimiterObserver()
+            startWatchdogObserver()
             audioEngine.startVoiceAnalyzer()
         }
     }
@@ -242,8 +247,46 @@ class AudioService : Service() {
         }
     }
 
+    private fun startWatchdogObserver() {
+        watchdogObserverJob?.cancel()
+        watchdogObserverJob = serviceScope.launch {
+            userPreferences.dspWatchdogEnabled.collect { enabled ->
+                if (enabled) {
+                    dspWatchdogManager.startMonitoring(serviceScope)
+                } else {
+                    dspWatchdogManager.stopMonitoring()
+                }
+            }
+        }
+        watchdogRestartJob?.cancel()
+        watchdogRestartJob = serviceScope.launch {
+            dspWatchdogManager.restartEvent.collect {
+                reapplyAllPreferences()
+            }
+        }
+    }
+
+    private suspend fun reapplyAllPreferences() {
+        val profileId = userPreferences.selectedProfileId.first()
+        val modeKey = userPreferences.currentMode.first()
+        val mode = AudioMode.fromKey(modeKey)
+        val profile = if (profileId > 0) {
+            audioProfileRepository.getById(profileId)
+        } else null ?: audioProfileRepository.getDefaultProfile(mode)
+        if (profile != null) {
+            modeManager.applyProfile(profile, 0)
+        }
+        audioEngine.setHeadTrackingEnabled(userPreferences.headTrackingEnabled.first())
+        audioEngine.setAecMode(userPreferences.aecMode.first())
+        audioEngine.setTransientLimiterEnabled(userPreferences.transientLimiterEnabled.first())
+        audioEngine.setTransientLimiterThreshold(userPreferences.transientLimiterThreshold.first())
+    }
+
     private fun stopAudio() {
         audioEngine.stopVoiceAnalyzer()
+        watchdogRestartJob?.cancel()
+        watchdogObserverJob?.cancel()
+        dspWatchdogManager.stopMonitoring()
         transientLimiterObserverJob?.cancel()
         audioEngine.setTransientLimiterEnabled(false)
         attentionObserverJob?.cancel()
@@ -361,6 +404,9 @@ class AudioService : Service() {
 
     override fun onDestroy() {
         audioEngine.stopVoiceAnalyzer()
+        watchdogRestartJob?.cancel()
+        watchdogObserverJob?.cancel()
+        dspWatchdogManager.stopMonitoring()
         transientLimiterObserverJob?.cancel()
         attentionObserverJob?.cancel()
         attentionController.stop()
