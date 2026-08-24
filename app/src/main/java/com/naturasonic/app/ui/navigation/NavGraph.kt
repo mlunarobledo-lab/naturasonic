@@ -31,6 +31,7 @@ import com.naturasonic.app.ui.screens.security.SecurityScreen
 import com.naturasonic.app.ui.screens.soundscape.SoundscapeAnalyticsScreen
 import com.naturasonic.app.ui.screens.transientlimiter.TransientLimiterScreen
 import com.naturasonic.app.ui.screens.watchdog.DspWatchdogScreen
+import com.naturasonic.app.ui.screens.wdrc.WdrcScreen
 
 object Routes {
     const val ONBOARDING = "onboarding"
@@ -53,6 +54,7 @@ object Routes {
     const val TRANSIENT_LIMITER = "transient_limiter"
     const val CLOUD_BACKUP = "cloud_backup"
     const val DSP_WATCHDOG = "dsp_watchdog"
+    const val WDRC = "wdrc"
 }
 
 @Composable
@@ -145,6 +147,9 @@ fun NaturaSonicNavHost() {
                 },
                 onNavigateToDspWatchdog = {
                     navController.navigate(Routes.DSP_WATCHDOG)
+                },
+                onNavigateToWdrc = {
+                    navController.navigate(Routes.WDRC)
                 }
             )
         }
@@ -244,6 +249,12 @@ fun NaturaSonicNavHost() {
 
         composable(Routes.DSP_WATCHDOG) {
             DspWatchdogScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.WDRC) {
+            WdrcScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

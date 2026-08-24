@@ -410,6 +410,71 @@ Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetAncHpCutoff(
     }
 }
 
+// --- WDRC Compressor JNI bridge ---
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetWdrcEnabled(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jboolean enabled) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setWdrcEnabled(enabled == JNI_TRUE);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetWdrcMakeupGainDb(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jfloat gainDb) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setWdrcMakeupGainDb(gainDb);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetWdrcPreset(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jint presetIndex) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setWdrcPreset(presetIndex);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetWdrcBandParams(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jint bandIndex,
+        jfloat thresholdDb, jfloat ratio, jfloat attackMs, jfloat releaseMs) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setWdrcBandParams(bandIndex, thresholdDb, ratio, attackMs, releaseMs);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeApplyWdrcAudiogramProfile(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jfloatArray thresholds) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (!eng || !thresholds) return;
+
+    jsize len = env->GetArrayLength(thresholds);
+    jfloat* data = env->GetFloatArrayElements(thresholds, nullptr);
+    if (data) {
+        eng->applyWdrcAudiogramProfile(data, len);
+        env->ReleaseFloatArrayElements(thresholds, data, JNI_ABORT);
+    }
+}
+
+JNIEXPORT jfloatArray JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeGetWdrcActiveGains(
+        JNIEnv* env, jobject thiz, jlong engineHandle) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (!eng) return nullptr;
+
+    auto gains = eng->getWdrcActiveGains();
+    jfloatArray result = env->NewFloatArray(10);
+    env->SetFloatArrayRegion(result, 0, 10, gains.gains);
+    return result;
+}
+
 // --- Whisper JNI bridge (audio stays in C++) ---
 
 JNIEXPORT jboolean JNICALL

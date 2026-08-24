@@ -213,6 +213,43 @@ class OboeAudioEngine @Inject constructor() {
         }
     }
 
+    fun setWdrcEnabled(enabled: Boolean) {
+        if (engineHandle != 0L) {
+            nativeSetWdrcEnabled(engineHandle, enabled)
+        }
+    }
+
+    fun setWdrcMakeupGainDb(gainDb: Float) {
+        if (engineHandle != 0L) {
+            nativeSetWdrcMakeupGainDb(engineHandle, gainDb.coerceIn(0f, 24f))
+        }
+    }
+
+    fun setWdrcPreset(presetIndex: Int) {
+        if (engineHandle != 0L) {
+            nativeSetWdrcPreset(engineHandle, presetIndex.coerceIn(0, 3))
+        }
+    }
+
+    fun setWdrcBandParams(bandIndex: Int, thresholdDb: Float, ratio: Float,
+                          attackMs: Float, releaseMs: Float) {
+        if (engineHandle != 0L) {
+            nativeSetWdrcBandParams(engineHandle, bandIndex, thresholdDb,
+                                    ratio, attackMs, releaseMs)
+        }
+    }
+
+    fun applyWdrcAudiogramProfile(thresholds: FloatArray) {
+        if (engineHandle != 0L) {
+            nativeApplyWdrcAudiogramProfile(engineHandle, thresholds)
+        }
+    }
+
+    fun getWdrcActiveGains(): FloatArray? {
+        if (engineHandle == 0L) return null
+        return nativeGetWdrcActiveGains(engineHandle)
+    }
+
     fun setAecMode(mode: Int) {
         if (engineHandle != 0L) {
             nativeSetAecMode(engineHandle, mode.coerceIn(0, 2))
@@ -266,6 +303,12 @@ class OboeAudioEngine @Inject constructor() {
     private external fun nativeSetAncHpEnabled(engineHandle: Long, enabled: Boolean)
     private external fun nativeSetAncLpCutoff(engineHandle: Long, cutoffHz: Float)
     private external fun nativeSetAncHpCutoff(engineHandle: Long, cutoffHz: Float)
+    private external fun nativeSetWdrcEnabled(engineHandle: Long, enabled: Boolean)
+    private external fun nativeSetWdrcMakeupGainDb(engineHandle: Long, gainDb: Float)
+    private external fun nativeSetWdrcPreset(engineHandle: Long, presetIndex: Int)
+    private external fun nativeSetWdrcBandParams(engineHandle: Long, bandIndex: Int, thresholdDb: Float, ratio: Float, attackMs: Float, releaseMs: Float)
+    private external fun nativeApplyWdrcAudiogramProfile(engineHandle: Long, thresholds: FloatArray)
+    private external fun nativeGetWdrcActiveGains(engineHandle: Long): FloatArray?
     private external fun nativeSetAecMode(engineHandle: Long, mode: Int)
     private external fun nativeGetAudioSessionId(engineHandle: Long): Int
     private external fun nativeDestroy(engineHandle: Long)

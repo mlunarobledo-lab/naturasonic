@@ -136,6 +136,22 @@ class UserPreferences @Inject constructor(
         prefs[KEY_ANC_HP_CUTOFF] ?: 4000.0f
     }
 
+    val wdrcEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_WDRC_ENABLED] ?: false
+    }
+
+    val wdrcMakeupGainDb: Flow<Float> = dataStore.data.map { prefs ->
+        prefs[KEY_WDRC_MAKEUP_GAIN_DB] ?: 6.0f
+    }
+
+    val wdrcPreset: Flow<Int> = dataStore.data.map { prefs ->
+        prefs[KEY_WDRC_PRESET] ?: 0
+    }
+
+    val wdrcCustomParams: Flow<String> = dataStore.data.map { prefs ->
+        prefs[KEY_WDRC_CUSTOM_PARAMS] ?: ""
+    }
+
     val transientLimiterEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[KEY_TRANSIENT_LIMITER_ENABLED] ?: false
     }
@@ -256,6 +272,22 @@ class UserPreferences @Inject constructor(
         dataStore.edit { it[KEY_ANC_HP_CUTOFF] = cutoffHz.coerceIn(2000f, 8000f) }
     }
 
+    suspend fun setWdrcEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_WDRC_ENABLED] = enabled }
+    }
+
+    suspend fun setWdrcMakeupGainDb(gainDb: Float) {
+        dataStore.edit { it[KEY_WDRC_MAKEUP_GAIN_DB] = gainDb.coerceIn(0f, 24f) }
+    }
+
+    suspend fun setWdrcPreset(preset: Int) {
+        dataStore.edit { it[KEY_WDRC_PRESET] = preset.coerceIn(0, 3) }
+    }
+
+    suspend fun setWdrcCustomParams(params: String) {
+        dataStore.edit { it[KEY_WDRC_CUSTOM_PARAMS] = params }
+    }
+
     suspend fun setTransientLimiterEnabled(enabled: Boolean) {
         dataStore.edit { it[KEY_TRANSIENT_LIMITER_ENABLED] = enabled }
     }
@@ -307,6 +339,10 @@ class UserPreferences @Inject constructor(
         private val KEY_ANC_HP_ENABLED = booleanPreferencesKey("anc_hp_enabled")
         private val KEY_ANC_LP_CUTOFF = floatPreferencesKey("anc_lp_cutoff")
         private val KEY_ANC_HP_CUTOFF = floatPreferencesKey("anc_hp_cutoff")
+        private val KEY_WDRC_ENABLED = booleanPreferencesKey("wdrc_enabled")
+        private val KEY_WDRC_MAKEUP_GAIN_DB = floatPreferencesKey("wdrc_makeup_gain_db")
+        private val KEY_WDRC_PRESET = intPreferencesKey("wdrc_preset")
+        private val KEY_WDRC_CUSTOM_PARAMS = stringPreferencesKey("wdrc_custom_params")
         private val KEY_TRANSIENT_LIMITER_ENABLED = booleanPreferencesKey("transient_limiter_enabled")
         private val KEY_TRANSIENT_LIMITER_THRESHOLD = floatPreferencesKey("transient_limiter_threshold")
         private val KEY_SPEECH_BOOST_DB = floatPreferencesKey("speech_boost_db")

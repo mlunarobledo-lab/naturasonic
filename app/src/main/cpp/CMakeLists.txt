@@ -45,6 +45,7 @@ add_library(naturasonic SHARED
     dosimetry_analyzer.cpp
     transient_limiter.cpp
     anc_phase_inverter.cpp
+    wdrc_compressor.cpp
 )
 
 target_include_directories(naturasonic PRIVATE

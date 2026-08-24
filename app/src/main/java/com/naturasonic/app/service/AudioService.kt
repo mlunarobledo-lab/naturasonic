@@ -77,6 +77,7 @@ class AudioService : Service() {
     private var attentionObserverJob: Job? = null
     private var transientLimiterObserverJob: Job? = null
     private var ancPhaseObserverJob: Job? = null
+    private var wdrcObserverJob: Job? = null
     private var watchdogObserverJob: Job? = null
     private var watchdogRestartJob: Job? = null
 
@@ -114,6 +115,7 @@ class AudioService : Service() {
             startAttentionObserver()
             startTransientLimiterObserver()
             startAncPhaseObserver()
+            startWdrcObserver()
             startWatchdogObserver()
             audioEngine.startVoiceAnalyzer()
         }
@@ -288,6 +290,23 @@ class AudioService : Service() {
         val hpCutoff: Float
     )
 
+    private fun startWdrcObserver() {
+        wdrcObserverJob?.cancel()
+        wdrcObserverJob = serviceScope.launch {
+            combine(
+                userPreferences.wdrcEnabled,
+                userPreferences.wdrcMakeupGainDb,
+                userPreferences.wdrcPreset
+            ) { enabled, makeupGainDb, preset ->
+                Triple(enabled, makeupGainDb, preset)
+            }.collect { (enabled, makeupGainDb, preset) ->
+                audioEngine.setWdrcEnabled(enabled)
+                audioEngine.setWdrcMakeupGainDb(makeupGainDb)
+                audioEngine.setWdrcPreset(preset)
+            }
+        }
+    }
+
     private fun startWatchdogObserver() {
         watchdogObserverJob?.cancel()
         watchdogObserverJob = serviceScope.launch {
@@ -327,6 +346,9 @@ class AudioService : Service() {
         audioEngine.setAncHpEnabled(userPreferences.ancHpEnabled.first())
         audioEngine.setAncLpCutoff(userPreferences.ancLpCutoff.first())
         audioEngine.setAncHpCutoff(userPreferences.ancHpCutoff.first())
+        audioEngine.setWdrcEnabled(userPreferences.wdrcEnabled.first())
+        audioEngine.setWdrcMakeupGainDb(userPreferences.wdrcMakeupGainDb.first())
+        audioEngine.setWdrcPreset(userPreferences.wdrcPreset.first())
     }
 
     private fun stopAudio() {
@@ -334,6 +356,8 @@ class AudioService : Service() {
         watchdogRestartJob?.cancel()
         watchdogObserverJob?.cancel()
         dspWatchdogManager.stopMonitoring()
+        wdrcObserverJob?.cancel()
+        audioEngine.setWdrcEnabled(false)
         ancPhaseObserverJob?.cancel()
         audioEngine.setAncPhaseEnabled(false)
         transientLimiterObserverJob?.cancel()
@@ -456,6 +480,7 @@ class AudioService : Service() {
         watchdogRestartJob?.cancel()
         watchdogObserverJob?.cancel()
         dspWatchdogManager.stopMonitoring()
+        wdrcObserverJob?.cancel()
         ancPhaseObserverJob?.cancel()
         transientLimiterObserverJob?.cancel()
         attentionObserverJob?.cancel()

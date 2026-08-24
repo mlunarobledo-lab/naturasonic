@@ -144,6 +144,34 @@ void NaturaSonicEngine::setAncHpCutoff(float cutoffHz) {
     ancPhaseInverter_.setHpCutoff(cutoffHz);
 }
 
+void NaturaSonicEngine::setWdrcEnabled(bool enabled) {
+    wdrcCompressor_.setEnabled(enabled);
+}
+
+void NaturaSonicEngine::setWdrcMakeupGainDb(float gainDb) {
+    wdrcCompressor_.setMakeupGainDb(gainDb);
+}
+
+void NaturaSonicEngine::setWdrcPreset(int presetIndex) {
+    wdrcCompressor_.setPreset(presetIndex);
+}
+
+void NaturaSonicEngine::setWdrcBandParams(int bandIndex, float thresholdDb,
+                                           float ratio, float attackMs,
+                                           float releaseMs) {
+    wdrcCompressor_.setBandParams(bandIndex, thresholdDb, ratio,
+                                  attackMs, releaseMs);
+}
+
+void NaturaSonicEngine::applyWdrcAudiogramProfile(const float* thresholdsDbHl,
+                                                    int count) {
+    wdrcCompressor_.applyAudiogramProfile(thresholdsDbHl, count);
+}
+
+WdrcCompressor::BandGains NaturaSonicEngine::getWdrcActiveGains() const {
+    return wdrcCompressor_.getActiveGains();
+}
+
 void NaturaSonicEngine::setAecMode(int mode) {
     int clamped = std::clamp(mode, 0, 2);
     aecMode_.store(clamped, std::memory_order_relaxed);
@@ -209,6 +237,7 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
                 dosimetryAnalyzer_.feedAudio(captureBuffer_.data(), framesToProcess);
 
                 ancPhaseInverter_.process(captureBuffer_.data(), framesToProcess);
+                wdrcCompressor_.process(captureBuffer_.data(), framesToProcess);
                 processor_.process(captureBuffer_.data(), framesToProcess);
                 transientLimiter_.process(captureBuffer_.data(), framesToProcess);
                 limiter_.process(captureBuffer_.data(), framesToProcess);

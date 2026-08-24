@@ -15,6 +15,7 @@
 #include "dosimetry_analyzer.h"
 #include "transient_limiter.h"
 #include "anc_phase_inverter.h"
+#include "wdrc_compressor.h"
 
 struct LatencyStats {
     float dspMinUs = 0;
@@ -61,6 +62,14 @@ public:
     void setAncHpEnabled(bool enabled);
     void setAncLpCutoff(float cutoffHz);
     void setAncHpCutoff(float cutoffHz);
+
+    void setWdrcEnabled(bool enabled);
+    void setWdrcMakeupGainDb(float gainDb);
+    void setWdrcPreset(int presetIndex);
+    void setWdrcBandParams(int bandIndex, float thresholdDb, float ratio,
+                           float attackMs, float releaseMs);
+    void applyWdrcAudiogramProfile(const float* thresholdsDbHl, int count);
+    WdrcCompressor::BandGains getWdrcActiveGains() const;
 
     static constexpr int kAecOff = 0;
     static constexpr int kAecSoftware = 1;
@@ -112,6 +121,7 @@ private:
     DosimetryAnalyzer dosimetryAnalyzer_;
     TransientLimiter transientLimiter_;
     AncPhaseInverter ancPhaseInverter_;
+    WdrcCompressor wdrcCompressor_;
     std::atomic<int> aecMode_{kAecOff};
 
     std::vector<float> captureBuffer_;

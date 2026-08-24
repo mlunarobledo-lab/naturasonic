@@ -88,6 +88,7 @@ fun SettingsScreen(
     onNavigateToTransientLimiter: () -> Unit = {},
     onNavigateToCloudBackup: () -> Unit = {},
     onNavigateToDspWatchdog: () -> Unit = {},
+    onNavigateToWdrc: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -277,6 +278,14 @@ fun SettingsScreen(
                 Icon(Icons.Default.PictureAsPdf, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Exportar reporte")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            TextButton(onClick = onNavigateToWdrc) {
+                Icon(Icons.Default.GraphicEq, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Compresión dinámica")
             }
 
             Spacer(Modifier.height(8.dp))
