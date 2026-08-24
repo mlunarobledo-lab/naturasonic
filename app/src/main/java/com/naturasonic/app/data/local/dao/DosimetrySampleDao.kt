@@ -14,6 +14,9 @@ interface DosimetrySampleDao {
     @Query("SELECT * FROM dosimetry_samples WHERE recordedAt >= :since ORDER BY recordedAt ASC")
     suspend fun getSince(since: Long): List<DosimetrySample>
 
+    @Query("SELECT * FROM dosimetry_samples ORDER BY recordedAt DESC")
+    suspend fun getAllForBackup(): List<DosimetrySample>
+
     @Query("DELETE FROM dosimetry_samples WHERE recordedAt < :before")
     suspend fun deleteOlderThan(before: Long)
 }

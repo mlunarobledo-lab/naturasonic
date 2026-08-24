@@ -22,6 +22,9 @@ interface AudiogramDao {
     @Query("SELECT * FROM audiogram_records ORDER BY dateMillis DESC")
     fun getAll(): Flow<List<AudiogramRecord>>
 
+    @Query("SELECT * FROM audiogram_records ORDER BY dateMillis DESC")
+    suspend fun getAllForBackup(): List<AudiogramRecord>
+
     @Query("UPDATE audiogram_records SET isActive = 0")
     suspend fun deactivateAll()
 }

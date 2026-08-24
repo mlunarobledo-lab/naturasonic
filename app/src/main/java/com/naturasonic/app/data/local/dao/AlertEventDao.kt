@@ -18,6 +18,9 @@ interface AlertEventDao {
     @Query("SELECT * FROM alert_log WHERE soundClass = :soundClass ORDER BY detectedAt DESC")
     fun getByClass(soundClass: String): Flow<List<AlertEvent>>
 
+    @Query("SELECT * FROM alert_log ORDER BY detectedAt DESC")
+    suspend fun getAllForBackup(): List<AlertEvent>
+
     @Query("SELECT * FROM alert_log WHERE detectedAt >= :since ORDER BY detectedAt DESC")
     suspend fun getSince(since: Long): List<AlertEvent>
 

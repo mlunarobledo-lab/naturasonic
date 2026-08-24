@@ -14,6 +14,9 @@ interface VoiceMetricsDao {
     @Query("SELECT * FROM voice_metrics WHERE recordedAt >= :since ORDER BY recordedAt ASC")
     suspend fun getSince(since: Long): List<VoiceMetricsEntry>
 
+    @Query("SELECT * FROM voice_metrics ORDER BY recordedAt DESC")
+    suspend fun getAllForBackup(): List<VoiceMetricsEntry>
+
     @Query("DELETE FROM voice_metrics WHERE recordedAt < :before")
     suspend fun deleteOlderThan(before: Long)
 }

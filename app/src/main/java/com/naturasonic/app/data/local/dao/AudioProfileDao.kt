@@ -39,6 +39,9 @@ interface AudioProfileDao {
     @Query("SELECT COUNT(*) FROM audio_profiles")
     suspend fun count(): Int
 
+    @Query("SELECT * FROM audio_profiles")
+    suspend fun getAllForBackup(): List<AudioProfile>
+
     @Query("SELECT * FROM audio_profiles WHERE isSynced = 0")
     suspend fun getUnsyncedProfiles(): List<AudioProfile>
 

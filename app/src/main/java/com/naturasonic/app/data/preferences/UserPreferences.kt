@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -99,6 +100,14 @@ class UserPreferences @Inject constructor(
         prefs[KEY_SECURITY_LOCK_TIMEOUT] ?: 1
     }
 
+    val autoBackupEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_AUTO_BACKUP_ENABLED] ?: false
+    }
+
+    val lastBackupTimestamp: Flow<Long> = dataStore.data.map { prefs ->
+        prefs[KEY_LAST_BACKUP_TIMESTAMP] ?: 0L
+    }
+
     val transientLimiterEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[KEY_TRANSIENT_LIMITER_ENABLED] ?: false
     }
@@ -183,6 +192,14 @@ class UserPreferences @Inject constructor(
         dataStore.edit { it[KEY_ATTENTION_AGC_ENABLED] = enabled }
     }
 
+    suspend fun setAutoBackupEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_AUTO_BACKUP_ENABLED] = enabled }
+    }
+
+    suspend fun setLastBackupTimestamp(timestamp: Long) {
+        dataStore.edit { it[KEY_LAST_BACKUP_TIMESTAMP] = timestamp }
+    }
+
     suspend fun setTransientLimiterEnabled(enabled: Boolean) {
         dataStore.edit { it[KEY_TRANSIENT_LIMITER_ENABLED] = enabled }
     }
@@ -225,6 +242,8 @@ class UserPreferences @Inject constructor(
         private val KEY_DOSIMETRY_ENABLED = booleanPreferencesKey("dosimetry_enabled")
         private val KEY_CALIBRATION_OFFSET = floatPreferencesKey("calibration_offset")
         private val KEY_ATTENTION_AGC_ENABLED = booleanPreferencesKey("attention_agc_enabled")
+        private val KEY_AUTO_BACKUP_ENABLED = booleanPreferencesKey("auto_backup_enabled")
+        private val KEY_LAST_BACKUP_TIMESTAMP = longPreferencesKey("last_backup_timestamp")
         private val KEY_TRANSIENT_LIMITER_ENABLED = booleanPreferencesKey("transient_limiter_enabled")
         private val KEY_TRANSIENT_LIMITER_THRESHOLD = floatPreferencesKey("transient_limiter_threshold")
         private val KEY_SPEECH_BOOST_DB = floatPreferencesKey("speech_boost_db")

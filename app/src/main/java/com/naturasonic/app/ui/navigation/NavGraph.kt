@@ -26,6 +26,7 @@ import com.naturasonic.app.ui.screens.voicehealth.VoiceHealthScreen
 import com.naturasonic.app.ui.screens.aec.AecSettingsScreen
 import com.naturasonic.app.ui.screens.export.ExportReportScreen
 import com.naturasonic.app.ui.screens.attention.AttentionAgcScreen
+import com.naturasonic.app.ui.screens.cloudbackup.CloudBackupScreen
 import com.naturasonic.app.ui.screens.security.SecurityScreen
 import com.naturasonic.app.ui.screens.soundscape.SoundscapeAnalyticsScreen
 import com.naturasonic.app.ui.screens.transientlimiter.TransientLimiterScreen
@@ -49,6 +50,7 @@ object Routes {
     const val ATTENTION_AGC = "attention_agc"
     const val SECURITY = "security"
     const val TRANSIENT_LIMITER = "transient_limiter"
+    const val CLOUD_BACKUP = "cloud_backup"
 }
 
 @Composable
@@ -135,6 +137,9 @@ fun NaturaSonicNavHost() {
                 },
                 onNavigateToTransientLimiter = {
                     navController.navigate(Routes.TRANSIENT_LIMITER)
+                },
+                onNavigateToCloudBackup = {
+                    navController.navigate(Routes.CLOUD_BACKUP)
                 }
             )
         }
@@ -222,6 +227,12 @@ fun NaturaSonicNavHost() {
 
         composable(Routes.TRANSIENT_LIMITER) {
             TransientLimiterScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.CLOUD_BACKUP) {
+            CloudBackupScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

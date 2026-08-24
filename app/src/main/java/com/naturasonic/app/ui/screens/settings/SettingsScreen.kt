@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.EnergySavingsLeaf
 import androidx.compose.material.icons.filled.HearingDisabled
 import androidx.compose.material.icons.filled.NoiseAware
 import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.PictureAsPdf
@@ -84,6 +85,7 @@ fun SettingsScreen(
     onNavigateToAttentionAgc: () -> Unit = {},
     onNavigateToSecurity: () -> Unit = {},
     onNavigateToTransientLimiter: () -> Unit = {},
+    onNavigateToCloudBackup: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -289,6 +291,14 @@ fun SettingsScreen(
                 Icon(Icons.Default.Lock, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Seguridad")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            TextButton(onClick = onNavigateToCloudBackup) {
+                Icon(Icons.Default.CloudUpload, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Copia de seguridad")
             }
 
             Spacer(Modifier.height(8.dp))

@@ -11,4 +11,9 @@ class StubCloudSyncApi @Inject constructor() : CloudSyncApi {
         Log.d("CloudSync", "Stub: ${profiles.size} profiles pending upload (no backend configured)")
         return false
     }
+
+    override suspend fun uploadBackup(encryptedData: ByteArray): Boolean {
+        Log.d("CloudSync", "Stub: encrypted backup ${encryptedData.size} bytes pending upload (no backend configured)")
+        return true
+    }
 }
