@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.EnergySavingsLeaf
 import androidx.compose.material.icons.filled.HearingDisabled
 import androidx.compose.material.icons.filled.NoiseAware
 import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
@@ -80,6 +81,7 @@ fun SettingsScreen(
     onNavigateToExportReport: () -> Unit = {},
     onNavigateToSoundscape: () -> Unit = {},
     onNavigateToAttentionAgc: () -> Unit = {},
+    onNavigateToSecurity: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -269,6 +271,14 @@ fun SettingsScreen(
                 Icon(Icons.Default.PictureAsPdf, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Exportar reporte")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            TextButton(onClick = onNavigateToSecurity) {
+                Icon(Icons.Default.Lock, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Seguridad")
             }
 
             Spacer(Modifier.height(8.dp))

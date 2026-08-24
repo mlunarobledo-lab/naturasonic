@@ -91,6 +91,14 @@ class UserPreferences @Inject constructor(
         prefs[KEY_ATTENTION_AGC_ENABLED] ?: false
     }
 
+    val securityLockEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_SECURITY_LOCK_ENABLED] ?: false
+    }
+
+    val securityLockTimeout: Flow<Int> = dataStore.data.map { prefs ->
+        prefs[KEY_SECURITY_LOCK_TIMEOUT] ?: 1
+    }
+
     val speechBoostDb: Flow<Float> = dataStore.data.map { prefs ->
         prefs[KEY_SPEECH_BOOST_DB] ?: 3.0f
     }
@@ -175,6 +183,14 @@ class UserPreferences @Inject constructor(
         dataStore.edit { it[KEY_ALERT_ATTENUATION_DB] = db.coerceIn(1f, 8f) }
     }
 
+    suspend fun setSecurityLockEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_SECURITY_LOCK_ENABLED] = enabled }
+    }
+
+    suspend fun setSecurityLockTimeout(minutes: Int) {
+        dataStore.edit { it[KEY_SECURITY_LOCK_TIMEOUT] = minutes.coerceIn(0, 15) }
+    }
+
     companion object {
         private val KEY_CURRENT_MODE = stringPreferencesKey("current_mode")
         private val KEY_MASTER_VOLUME = floatPreferencesKey("master_volume")
@@ -195,5 +211,7 @@ class UserPreferences @Inject constructor(
         private val KEY_ATTENTION_AGC_ENABLED = booleanPreferencesKey("attention_agc_enabled")
         private val KEY_SPEECH_BOOST_DB = floatPreferencesKey("speech_boost_db")
         private val KEY_ALERT_ATTENUATION_DB = floatPreferencesKey("alert_attenuation_db")
+        private val KEY_SECURITY_LOCK_ENABLED = booleanPreferencesKey("security_lock_enabled")
+        private val KEY_SECURITY_LOCK_TIMEOUT = intPreferencesKey("security_lock_timeout")
     }
 }

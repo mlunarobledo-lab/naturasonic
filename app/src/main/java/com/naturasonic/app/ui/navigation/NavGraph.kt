@@ -26,6 +26,7 @@ import com.naturasonic.app.ui.screens.voicehealth.VoiceHealthScreen
 import com.naturasonic.app.ui.screens.aec.AecSettingsScreen
 import com.naturasonic.app.ui.screens.export.ExportReportScreen
 import com.naturasonic.app.ui.screens.attention.AttentionAgcScreen
+import com.naturasonic.app.ui.screens.security.SecurityScreen
 import com.naturasonic.app.ui.screens.soundscape.SoundscapeAnalyticsScreen
 
 object Routes {
@@ -45,6 +46,7 @@ object Routes {
     const val EXPORT_REPORT = "export_report"
     const val SOUNDSCAPE = "soundscape"
     const val ATTENTION_AGC = "attention_agc"
+    const val SECURITY = "security"
 }
 
 @Composable
@@ -125,6 +127,9 @@ fun NaturaSonicNavHost() {
                 },
                 onNavigateToAttentionAgc = {
                     navController.navigate(Routes.ATTENTION_AGC)
+                },
+                onNavigateToSecurity = {
+                    navController.navigate(Routes.SECURITY)
                 }
             )
         }
@@ -200,6 +205,12 @@ fun NaturaSonicNavHost() {
 
         composable(Routes.ATTENTION_AGC) {
             AttentionAgcScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.SECURITY) {
+            SecurityScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

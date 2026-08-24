@@ -10,6 +10,8 @@ import com.naturasonic.app.data.local.dao.AudiogramDao
 import com.naturasonic.app.data.local.dao.TranscriptionDao
 import com.naturasonic.app.data.local.dao.DosimetrySampleDao
 import com.naturasonic.app.data.local.dao.VoiceMetricsDao
+import com.naturasonic.app.security.DatabaseEncryptionMigrator
+import com.naturasonic.app.security.KeyStoreManager
 import com.naturasonic.app.sync.CloudSyncApi
 import com.naturasonic.app.sync.StubCloudSyncApi
 import dagger.Module
@@ -17,6 +19,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import javax.inject.Singleton
 
 @Module
@@ -25,14 +28,36 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
-        Room.databaseBuilder(
+    fun provideDatabase(
+        @ApplicationContext context: Context,
+        keyStoreManager: KeyStoreManager
+    ): AppDatabase {
+        System.loadLibrary("sqlcipher")
+
+        val passphrase = keyStoreManager.getOrCreateDatabasePassphrase()
+
+        if (!DatabaseEncryptionMigrator.canDecryptDatabase(context, passphrase)) {
+            DatabaseEncryptionMigrator.handleUndecryptableDatabase(context)
+        } else {
+            DatabaseEncryptionMigrator.migrateIfNeeded(context, passphrase)
+        }
+
+        val factory = SupportOpenHelperFactory(passphrase)
+
+        return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
             "naturasonic.db"
         )
-            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5)
+            .openHelperFactory(factory)
+            .addMigrations(
+                AppDatabase.MIGRATION_1_2,
+                AppDatabase.MIGRATION_2_3,
+                AppDatabase.MIGRATION_3_4,
+                AppDatabase.MIGRATION_4_5
+            )
             .build()
+    }
 
     @Provides
     fun provideAudioProfileDao(db: AppDatabase): AudioProfileDao = db.audioProfileDao()

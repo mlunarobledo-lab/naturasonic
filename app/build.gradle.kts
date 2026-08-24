@@ -113,6 +113,11 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
 
+    implementation(libs.security.crypto)
+    implementation(libs.sqlcipher)
+    implementation(libs.sqlite.ktx)
+    implementation(libs.biometric)
+
     implementation(libs.play.billing)
     implementation(libs.tensorflow.lite)
     implementation(libs.tensorflow.lite.support)
