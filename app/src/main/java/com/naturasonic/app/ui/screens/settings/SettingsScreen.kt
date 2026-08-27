@@ -3,6 +3,7 @@ package com.naturasonic.app.ui.screens.settings
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -52,17 +53,29 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.naturasonic.app.R
 import com.naturasonic.app.billing.BillingManager
@@ -125,6 +138,10 @@ fun SettingsScreen(
                 bands = state.eqBands,
                 onBandChange = viewModel::setEqBand
             )
+
+            Spacer(Modifier.height(12.dp))
+
+            SpectrumAnalyzerCard(getSpectrumData = viewModel::getSpectrumData)
 
             Spacer(Modifier.height(12.dp))
 
@@ -478,6 +495,114 @@ private fun ProfileCard(
             }
             IconButton(onClick = onDelete) {
                 Icon(Icons.Default.Delete, contentDescription = "Eliminar")
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpectrumAnalyzerCard(getSpectrumData: () -> FloatArray) {
+    val numBands = 10
+    val displayValues = remember { FloatArray(numBands) }
+    var tick by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            val raw = getSpectrumData()
+            for (i in 0 until numBands) {
+                val target = if (i < raw.size) raw[i].coerceIn(0f, 1f) else 0f
+                if (target > displayValues[i]) {
+                    displayValues[i] = target
+                } else {
+                    displayValues[i] = displayValues[i] * 0.85f + target * 0.15f
+                }
+            }
+            tick = System.nanoTime().toFloat()
+            delay(50)
+        }
+    }
+
+    val textMeasurer = rememberTextMeasurer()
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val surfaceColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Analizador de espectro",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(12.dp))
+
+            @Suppress("UNUSED_EXPRESSION")
+            tick
+
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+            ) {
+                val barCount = numBands
+                val spacing = 6.dp.toPx()
+                val labelHeight = 16.dp.toPx()
+                val barAreaHeight = size.height - labelHeight
+                val totalSpacing = spacing * (barCount + 1)
+                val barWidth = (size.width - totalSpacing) / barCount
+
+                for (i in 0 until barCount) {
+                    val x = spacing + i * (barWidth + spacing)
+                    val magnitude = displayValues[i]
+                    val barHeight = magnitude * barAreaHeight
+
+                    drawRoundRect(
+                        color = surfaceColor,
+                        topLeft = Offset(x, 0f),
+                        size = Size(barWidth, barAreaHeight),
+                        cornerRadius = CornerRadius(4.dp.toPx())
+                    )
+
+                    if (barHeight > 0.5f) {
+                        val green = Color(0xFF4CAF50)
+                        val yellow = Color(0xFFFFEB3B)
+                        val red = Color(0xFFF44336)
+
+                        val barColor = when {
+                            magnitude < 0.4f -> green
+                            magnitude < 0.7f -> yellow
+                            else -> red
+                        }
+
+                        val gradient = Brush.verticalGradient(
+                            colors = listOf(barColor, barColor.copy(alpha = 0.6f)),
+                            startY = barAreaHeight - barHeight,
+                            endY = barAreaHeight
+                        )
+
+                        drawRoundRect(
+                            brush = gradient,
+                            topLeft = Offset(x, barAreaHeight - barHeight),
+                            size = Size(barWidth, barHeight),
+                            cornerRadius = CornerRadius(4.dp.toPx())
+                        )
+                    }
+
+                    val label = EQ_LABELS[i]
+                    val textResult = textMeasurer.measure(
+                        label,
+                        style = TextStyle(fontSize = 8.sp, color = labelColor)
+                    )
+                    drawText(
+                        textResult,
+                        topLeft = Offset(
+                            x + (barWidth - textResult.size.width) / 2,
+                            barAreaHeight + 2.dp.toPx()
+                        )
+                    )
+                }
             }
         }
     }

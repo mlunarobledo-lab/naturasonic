@@ -9,8 +9,8 @@
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 NaturaSonicEngine::NaturaSonicEngine()
-    : limiter_(85.0f) {
-    captureBuffer_.resize(kFramesPerBuffer * kChannelCount);
+    : limiter_(85.0f), spectrumAnalyzer_(kSampleRate) {
+    captureBuffer_.resize(kFramesPerBuffer * kInputChannelCount);
     yamnetBuffer_.resize(kYamnetBufferSize, 0.0f);
 }
 
@@ -31,19 +31,26 @@ bool NaturaSonicEngine::start() {
     }
 
     auto resultIn = inputStream_->requestStart();
-    auto resultOut = outputStream_->requestStart();
+    if (resultIn != oboe::Result::OK) {
+        LOGE("Failed to start input stream: %d", static_cast<int>(resultIn));
+        stop();
+        return false;
+    }
 
-    if (resultIn != oboe::Result::OK || resultOut != oboe::Result::OK) {
-        LOGE("Failed to start streams: in=%d out=%d",
-             static_cast<int>(resultIn), static_cast<int>(resultOut));
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    auto resultOut = outputStream_->requestStart();
+    if (resultOut != oboe::Result::OK) {
+        LOGE("Failed to start output stream: %d", static_cast<int>(resultOut));
         stop();
         return false;
     }
 
     running_.store(true);
+    fadeInRemaining_.store(kFadeInSamples, std::memory_order_relaxed);
     consecutiveErrors_.store(0, std::memory_order_relaxed);
-    LOGI("Audio engine started: %dHz, %d channels, %d frames/buffer",
-         kSampleRate, kChannelCount, kFramesPerBuffer);
+    LOGI("Audio engine started: %dHz, in=%dch out=%dch, %d frames/buffer",
+         kSampleRate, kInputChannelCount, kOutputChannelCount, kFramesPerBuffer);
     return true;
 }
 
@@ -84,11 +91,16 @@ void NaturaSonicEngine::setVolumeLimitDb(float limitDb) {
 
 void NaturaSonicEngine::applyProfile(const float* bands, int count, float amplification, int noiseGateMode) {
     processor_.applyProfile(bands, count, amplification, noiseGateMode);
+    limiter_.reset();
 }
 
 void NaturaSonicEngine::setOutputMuted(bool muted) {
     outputMuted_.store(muted, std::memory_order_relaxed);
     LOGI("Output muted: %s", muted ? "true" : "false");
+}
+
+void NaturaSonicEngine::setBalance(float balance) {
+    balance_.store(std::clamp(balance, -1.0f, 1.0f), std::memory_order_relaxed);
 }
 
 void NaturaSonicEngine::setHeadTrackingEnabled(bool enabled) {
@@ -237,6 +249,8 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
         auto* output = static_cast<float*>(audioData);
         int framesToOutput = numFrames;
 
+        std::memset(output, 0, numFrames * kOutputChannelCount * sizeof(float));
+
         if (inputStream_) {
             auto result = inputStream_->read(
                 captureBuffer_.data(), numFrames, 0);
@@ -268,11 +282,28 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
                 latencyWritePos_++;
                 totalFrameCount_.fetch_add(1, std::memory_order_relaxed);
 
-                if (outputMuted_.load(std::memory_order_relaxed)) {
-                    std::memset(output, 0, framesToProcess * kChannelCount * sizeof(float));
-                } else {
-                    std::memcpy(output, captureBuffer_.data(),
-                               framesToProcess * kChannelCount * sizeof(float));
+                spectrumAnalyzer_.feedAudio(captureBuffer_.data(), framesToProcess);
+
+                float bal = balance_.load(std::memory_order_relaxed);
+                float gainL = std::min(1.0f, 1.0f - bal);
+                float gainR = std::min(1.0f, 1.0f + bal);
+
+                if (!outputMuted_.load(std::memory_order_relaxed)) {
+                    for (int i = 0; i < framesToProcess; i++) {
+                        output[i * 2]     = captureBuffer_[i] * gainL;
+                        output[i * 2 + 1] = captureBuffer_[i] * gainR;
+                    }
+                }
+
+                int fadeRem = fadeInRemaining_.load(std::memory_order_relaxed);
+                if (fadeRem > 0) {
+                    for (int i = 0; i < framesToProcess; i++) {
+                        int pos = kFadeInSamples - fadeRem + i;
+                        float ramp = std::min(1.0f, static_cast<float>(pos) / static_cast<float>(kFadeInSamples));
+                        output[i * 2]     *= ramp;
+                        output[i * 2 + 1] *= ramp;
+                    }
+                    fadeInRemaining_.store(std::max(0, fadeRem - framesToProcess), std::memory_order_relaxed);
                 }
 
                 if (aecMode_.load(std::memory_order_relaxed) == kAecSoftware) {
@@ -301,15 +332,14 @@ oboe::DataCallbackResult NaturaSonicEngine::onAudioReady(
                         }
                     }
                 }
-            } else {
-                std::memset(output, 0, numFrames * kChannelCount * sizeof(float));
             }
-        } else {
-            std::memset(output, 0, numFrames * kChannelCount * sizeof(float));
         }
 
         if (!outputMuted_.load(std::memory_order_relaxed)) {
-            tinnitusGenerator_.generate(output, framesToOutput);
+            float bal = balance_.load(std::memory_order_relaxed);
+            float gL = std::min(1.0f, 1.0f - bal);
+            float gR = std::min(1.0f, 1.0f + bal);
+            tinnitusGenerator_.generate(output, framesToOutput, kOutputChannelCount, gL, gR);
         }
     }
 
@@ -447,33 +477,42 @@ void NaturaSonicEngine::setCalibrationOffset(float offsetDb) {
     dosimetryAnalyzer_.setCalibrationOffset(offsetDb);
 }
 
+void NaturaSonicEngine::getSpectrumData(float* outBands) const {
+    spectrumAnalyzer_.getSpectrum(outBands);
+}
+
 void NaturaSonicEngine::openInputStream() {
     oboe::AudioStreamBuilder builder;
     builder.setDirection(oboe::Direction::Input)
-           ->setPerformanceMode(oboe::PerformanceMode::LowLatency)
-           ->setSharingMode(oboe::SharingMode::Exclusive)
+           ->setPerformanceMode(oboe::PerformanceMode::None)
+           ->setSharingMode(oboe::SharingMode::Shared)
            ->setFormat(oboe::AudioFormat::Float)
-           ->setChannelCount(kChannelCount)
+           ->setChannelCount(kInputChannelCount)
            ->setSampleRate(kSampleRate)
-           ->setFramesPerDataCallback(kFramesPerBuffer)
-           ->setInputPreset(oboe::InputPreset::Unprocessed);
+           ->setInputPreset(oboe::InputPreset::VoicePerformance);
 
     auto result = builder.openStream(inputStream_);
     if (result != oboe::Result::OK) {
         LOGE("Failed to open input stream: %s", oboe::convertToText(result));
         inputStream_.reset();
+    } else {
+        LOGI("Input stream opened: sampleRate=%d, framesPerBurst=%d, bufferCapacity=%d",
+             inputStream_->getSampleRate(),
+             inputStream_->getFramesPerBurst(),
+             inputStream_->getBufferCapacityInFrames());
     }
 }
 
 void NaturaSonicEngine::openOutputStream() {
     oboe::AudioStreamBuilder builder;
     builder.setDirection(oboe::Direction::Output)
-           ->setPerformanceMode(oboe::PerformanceMode::LowLatency)
-           ->setSharingMode(oboe::SharingMode::Exclusive)
+           ->setPerformanceMode(oboe::PerformanceMode::None)
+           ->setSharingMode(oboe::SharingMode::Shared)
            ->setFormat(oboe::AudioFormat::Float)
-           ->setChannelCount(kChannelCount)
+           ->setChannelCount(kOutputChannelCount)
            ->setSampleRate(kSampleRate)
-           ->setFramesPerDataCallback(kFramesPerBuffer)
+           ->setUsage(oboe::Usage::Media)
+           ->setContentType(oboe::ContentType::Music)
            ->setDataCallback(this)
            ->setErrorCallback(this);
 
@@ -481,5 +520,10 @@ void NaturaSonicEngine::openOutputStream() {
     if (result != oboe::Result::OK) {
         LOGE("Failed to open output stream: %s", oboe::convertToText(result));
         outputStream_.reset();
+    } else {
+        LOGI("Output stream opened: sampleRate=%d, framesPerBurst=%d, bufferCapacity=%d",
+             outputStream_->getSampleRate(),
+             outputStream_->getFramesPerBurst(),
+             outputStream_->getBufferCapacityInFrames());
     }
 }

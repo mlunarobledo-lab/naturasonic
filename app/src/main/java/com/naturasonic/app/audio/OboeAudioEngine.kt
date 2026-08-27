@@ -64,6 +64,12 @@ class OboeAudioEngine @Inject constructor() {
         }
     }
 
+    fun setBalance(balance: Float) {
+        if (engineHandle != 0L) {
+            nativeSetBalance(engineHandle, balance.coerceIn(-1f, 1f))
+        }
+    }
+
     fun setAttentionAgcEnabled(enabled: Boolean) {
         if (engineHandle != 0L) {
             nativeSetAttentionAgcEnabled(engineHandle, enabled)
@@ -250,6 +256,11 @@ class OboeAudioEngine @Inject constructor() {
         return nativeGetWdrcActiveGains(engineHandle)
     }
 
+    fun getSpectrumData(): FloatArray? {
+        if (engineHandle == 0L) return null
+        return nativeGetSpectrumData(engineHandle)
+    }
+
     fun setTinnitusEnabled(enabled: Boolean) {
         if (engineHandle != 0L) {
             nativeSetTinnitusEnabled(engineHandle, enabled)
@@ -301,6 +312,7 @@ class OboeAudioEngine @Inject constructor() {
     private external fun nativeSetNoiseGateMode(engineHandle: Long, mode: Int)
     private external fun nativeSetVolumeLimitDb(engineHandle: Long, limitDb: Float)
     private external fun nativeSetOutputMuted(engineHandle: Long, muted: Boolean)
+    private external fun nativeSetBalance(engineHandle: Long, balance: Float)
     private external fun nativeSetAttentionAgcEnabled(engineHandle: Long, enabled: Boolean)
     private external fun nativeSetAttentionGainOffsets(engineHandle: Long, offsets: FloatArray)
     private external fun nativeSetHeadTrackingEnabled(engineHandle: Long, enabled: Boolean)
@@ -333,6 +345,7 @@ class OboeAudioEngine @Inject constructor() {
     private external fun nativeSetWdrcBandParams(engineHandle: Long, bandIndex: Int, thresholdDb: Float, ratio: Float, attackMs: Float, releaseMs: Float)
     private external fun nativeApplyWdrcAudiogramProfile(engineHandle: Long, thresholds: FloatArray)
     private external fun nativeGetWdrcActiveGains(engineHandle: Long): FloatArray?
+    private external fun nativeGetSpectrumData(engineHandle: Long): FloatArray?
     private external fun nativeSetTinnitusEnabled(engineHandle: Long, enabled: Boolean)
     private external fun nativeSetTinnitusSoundType(engineHandle: Long, type: Int)
     private external fun nativeSetTinnitusVolume(engineHandle: Long, volume: Float)

@@ -142,6 +142,10 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun getSpectrumData(): FloatArray {
+        return audioEngine.getSpectrumData() ?: FloatArray(10)
+    }
+
     fun deleteProfile(profile: AudioProfile) {
         viewModelScope.launch {
             val selectedId = userPreferences.selectedProfileId.first()

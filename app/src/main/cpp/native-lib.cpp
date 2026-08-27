@@ -96,6 +96,15 @@ Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetOutputMuted(
 }
 
 JNIEXPORT void JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetBalance(
+        JNIEnv* env, jobject thiz, jlong engineHandle, jfloat balance) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (eng) {
+        eng->setBalance(balance);
+    }
+}
+
+JNIEXPORT void JNICALL
 Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetHeadTrackingEnabled(
         JNIEnv* env, jobject thiz, jlong engineHandle, jboolean enabled) {
     auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
@@ -511,6 +520,21 @@ Java_com_naturasonic_app_audio_OboeAudioEngine_nativeSetTinnitusFrequencyHz(
     if (eng) {
         eng->setTinnitusFrequencyHz(freqHz);
     }
+}
+
+// --- Spectrum Analyzer JNI bridge ---
+
+JNIEXPORT jfloatArray JNICALL
+Java_com_naturasonic_app_audio_OboeAudioEngine_nativeGetSpectrumData(
+        JNIEnv* env, jobject thiz, jlong engineHandle) {
+    auto* eng = reinterpret_cast<NaturaSonicEngine*>(engineHandle);
+    if (!eng) return nullptr;
+
+    float bands[10];
+    eng->getSpectrumData(bands);
+    jfloatArray result = env->NewFloatArray(10);
+    env->SetFloatArrayRegion(result, 0, 10, bands);
+    return result;
 }
 
 // --- Whisper JNI bridge (audio stays in C++) ---

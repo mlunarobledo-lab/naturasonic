@@ -47,6 +47,7 @@ add_library(naturasonic SHARED
     anc_phase_inverter.cpp
     wdrc_compressor.cpp
     tinnitus_generator.cpp
+    spectrum_analyzer.cpp
 )
 
 target_include_directories(naturasonic PRIVATE

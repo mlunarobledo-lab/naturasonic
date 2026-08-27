@@ -17,6 +17,7 @@
 #include "anc_phase_inverter.h"
 #include "wdrc_compressor.h"
 #include "tinnitus_generator.h"
+#include "spectrum_analyzer.h"
 
 struct LatencyStats {
     float dspMinUs = 0;
@@ -49,6 +50,7 @@ public:
     void setVolumeLimitDb(float limitDb);
     void applyProfile(const float* bands, int count, float amplification, int noiseGateMode);
     void setOutputMuted(bool muted);
+    void setBalance(float balance);
     void setHeadTrackingEnabled(bool enabled);
     void setHeadTrackingAngles(float azimuthDeg, float pitchDeg, float sensitivity);
     void setAttentionAgcEnabled(bool enabled);
@@ -99,6 +101,8 @@ public:
     DosimetryData getDosimetryData() const;
     void setCalibrationOffset(float offsetDb);
 
+    void getSpectrumData(float* outBands) const;
+
     bool initWhisper(const char* modelPath);
     void releaseWhisper();
     void startWhisperCapture();
@@ -129,6 +133,7 @@ private:
     AncPhaseInverter ancPhaseInverter_;
     WdrcCompressor wdrcCompressor_;
     TinnitusGenerator tinnitusGenerator_;
+    SpectrumAnalyzer spectrumAnalyzer_;
     std::atomic<int> aecMode_{kAecOff};
 
     std::vector<float> captureBuffer_;
@@ -142,6 +147,9 @@ private:
 
     std::atomic<bool> running_{false};
     std::atomic<bool> outputMuted_{false};
+    std::atomic<float> balance_{0.0f};
+    std::atomic<int> fadeInRemaining_{0};
+    static constexpr int kFadeInSamples = 96000;
 
     static constexpr int kLatencyWindowSize = 256;
     float latencyHistoryUs_[kLatencyWindowSize] = {};
@@ -149,7 +157,8 @@ private:
     std::atomic<int64_t> totalFrameCount_{0};
 
     static constexpr int kSampleRate = 48000;
-    static constexpr int kChannelCount = 1;
+    static constexpr int kInputChannelCount = 1;
+    static constexpr int kOutputChannelCount = 2;
     static constexpr int kFramesPerBuffer = 256;
     static constexpr size_t kYamnetBufferSize = 48000;
 
